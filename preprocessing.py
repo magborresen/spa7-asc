@@ -1,8 +1,10 @@
 import os
 import glob
 import re
+import numpy as np
 from scipy.io import wavfile
 from scipy import signal
+from scipy.spatial.distance import pdist, squareform
 
 
 class preprocess():
@@ -39,11 +41,16 @@ class preprocess():
             # Get the class
             sample_class = [c for c in self.classes if re.search(r'\b' + c + r'\b', f)]
             sample_rate, data = wavfile.read(f)
+            class_labels.append(sample_class)
             if method == "spectrogram":
                 transform = self.spectrogram(data, sample_rate)
 
-                collected_data.append(transform)
+            if type(transform) == list:
+                collected_data.append(transform[0])
+                collected_data.append(transform[1])
                 class_labels.append(sample_class)
+            else:
+                collected_data.append(transform)
 
         return collected_data, class_labels
 
@@ -71,14 +78,13 @@ class preprocess():
             ch1f, ch1t, ch1Sxx = signal.spectrogram(data[:,1], sample_rate,
                                             nfft=nfft, noverlap=noverlap, window=window)
 
-            return ch0Sxx, ch1Sxx
+            return [ch0Sxx, ch1Sxx]
+
         # If 1 channel
-        else:
+        ch0f, ch0t, ch0Sxx = signal.spectrogram(data, sample_rate,
+                                        nfft=nfft, noverlap=noverlap, window=window)
 
-            ch0f, ch0t, ch0Sxx = signal.spectrogram(data, sample_rate,
-                                            nfft=nfft, noverlap=noverlap, window=window)
-
-            return ch0Sxx
+        return ch0Sxx
 
     def melSpec(self):
         return None
@@ -86,5 +92,38 @@ class preprocess():
     def timeSeries(self):
         return None
 
-    def recurrent(self):
-        return None
+    def recurrent(self, data, eps=0.00010, steps=10):
+        """ Compute the recurrence plot data of a given signal
+
+        Computes the eucledian distance between samples and compares them to a step size.
+        Returns a distance matrix.
+        For distance
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html
+
+        For squareform
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.squareform.html
+
+        Args:
+            data (array): Sampled data
+            eps (float): Dunno
+            steps (int): Dunno
+
+        Returns:
+            Z (np.ndarray): Recurrence plot data 
+        """
+
+        if data.shape[1] > 1:
+            ch0data = data[:,0]
+            ch1data = data[:,1]
+            ch0dist = pdist(ch0data[:,None])
+            ch0dist = np.floor(ch0dist/eps)
+            ch0dist[dist > steps] = steps
+            # Convert distance vector to matrix
+            ch0Z = squareform(ch0dist)
+
+            ch1dist = pdist(ch1data[:,None])
+            ch1dist = np.floor(ch1dist/eps)
+            ch1dist[dist > steps] = steps
+            # Convert distance vector to matrix
+            ch1Z = squareform(ch1dist)
+            return [ch0Z, ch1Z]
