@@ -143,3 +143,8 @@ training_data/
 # .wav files
 *.wav
 .wav
+
+# vscode files
+.vscode
+.vscode/
+.vscode/*

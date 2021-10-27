@@ -129,3 +129,12 @@ class preprocess():
             # Convert distance vector to matrix
             ch1Z = squareform(ch1dist)
             return [ch0Z, ch1Z]
+
+        ch0data = data[:,0]
+        ch0dist = pdist(ch0data[:,None])
+        ch0dist = np.floor(ch0dist/eps)
+        ch0dist[dist > steps] = steps
+        # Convert distance vector to matrix
+        ch0Z = squareform(ch0dist)
+
+        return ch0Z
