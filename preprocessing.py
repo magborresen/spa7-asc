@@ -45,6 +45,7 @@ class preprocess():
             if method == "spectrogram":
                 transform = self.spectrogram(data, sample_rate)
 
+            # Check if returned data is two channels
             if type(transform) == list:
                 collected_data.append(transform[0])
                 collected_data.append(transform[1])
@@ -97,6 +98,7 @@ class preprocess():
 
         Computes the eucledian distance between samples and compares them to a step size.
         Returns a distance matrix.
+
         For distance
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html
 
