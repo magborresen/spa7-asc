@@ -34,14 +34,22 @@ class preprocess():
             collected_data (list): List of preprocessed collected data
             class_labels (list): List of class labels
         """
-        files = glob.glob(os.path.join(self.path, '/**/*.wav'), recursive=True)
+
+        audio_files = glob.glob(os.path.join(self.path, '/**/*.wav'), recursive=True)
         collected_data = []
         class_labels = []
-        for f in files:
+        for af in audio_files:
+            # Find associated label files
+            dirname = os.path.dirname(os.path.abspath(af))
+            label_file = glob.glob(dirname + "/*.txt")
             # Get the class
-            sample_class = [c for c in self.classes if re.search(r'\b' + c + r'\b', f)]
-            sample_rate, data = wavfile.read(f)
+            sample_class = [c for c in self.classes if re.search(r'\b' + c + r'\b', af)]
             class_labels.append(sample_class)
+
+            sample_rate, data = wavfile.read(af)
+            if len(label_file) > 0:
+                data = self.rm_labeled_noise(data, sample_rate, label_file[0])
+
             if method == "spectrogram":
                 transform = self.spectrogram(data, sample_rate)
 
@@ -54,6 +62,25 @@ class preprocess():
                 collected_data.append(transform)
 
         return collected_data, class_labels
+
+    def rm_labeled_noise(self, data, sample_rate, label_file_path):
+        cut_data_ch0 = np.array([])
+        cut_data_ch1 = np.array([])
+
+        with open(label_file_path, encoding="utf8") as f:
+            lines = f.readlines()
+
+        for line in lines:
+            time_labels = line.split('\t')
+            time_labels.pop(2)
+            stop_time = int(float(time_labels[0]) * 44100)
+            cut_data_ch0 = np.append(cut_data_ch0, data[:,0][start_time:stop_time])
+            cut_data_ch1 = np.append(cut_data_ch1, data[:,1][start_time:stop_time])
+            start_time = int(float(time_labels[1]) * 44100)
+
+        cut_data = np.vstack((cut_data_ch0, cut_data_ch1)).T
+
+        return cut_data
 
     def spectrogram(self, data, sample_rate,  nfft=1024, noverlap=512, window="hann"):
         """ Compute the spectrogram of a given signal
@@ -87,10 +114,10 @@ class preprocess():
 
         return ch0Sxx
 
-    def melSpec(self):
+    def mel_spec(self):
         return None
 
-    def timeSeries(self):
+    def time_series(self):
         return None
 
     def recurrent(self, data, eps=0.00010, steps=10):
