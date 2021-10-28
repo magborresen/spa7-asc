@@ -2,6 +2,7 @@ import os
 import glob
 import re
 import numpy as np
+from tqdm import tqdm
 from scipy.io import wavfile
 from scipy import signal
 from scipy.spatial.distance import pdist, squareform
@@ -35,16 +36,23 @@ class preprocess():
             class_labels (list): List of class labels
         """
 
-        audio_files = glob.glob(os.path.join(self.path, '/**/*.wav'), recursive=True)
+        audio_files = glob.glob(os.path.join(self.path, '**/*.wav'), recursive=True)
         collected_data = []
         class_labels = []
-        for af in audio_files:
+        print("\nPreprocessing data into " + method + " data\n")
+        pbar = tqdm(audio_files)
+        for af in pbar:
+            # Progress bar, just for show
+            pbar.set_description("Processing %s" % af)
+
             # Find associated label files
+            
             dirname = os.path.dirname(os.path.abspath(af))
             label_file = glob.glob(dirname + "/*.txt")
+            
             # Get the class
             sample_class = [c for c in self.classes if re.search(r'\b' + c + r'\b', af)]
-            class_labels.append(sample_class)
+            class_labels.append(sample_class[0])
 
             sample_rate, data = wavfile.read(af)
             if len(label_file) > 0:
@@ -57,7 +65,7 @@ class preprocess():
             if type(transform) == list:
                 collected_data.append(transform[0])
                 collected_data.append(transform[1])
-                class_labels.append(sample_class)
+                class_labels.append(sample_class[0])
             else:
                 collected_data.append(transform)
 
@@ -67,12 +75,13 @@ class preprocess():
         cut_data_ch0 = np.array([])
         cut_data_ch1 = np.array([])
 
+        start_time = 0
+
         with open(label_file_path, encoding="utf8") as f:
             lines = f.readlines()
 
         for line in lines:
             time_labels = line.split('\t')
-            time_labels.pop(2)
             stop_time = int(float(time_labels[0]) * 44100)
             cut_data_ch0 = np.append(cut_data_ch0, data[:,0][start_time:stop_time])
             cut_data_ch1 = np.append(cut_data_ch1, data[:,1][start_time:stop_time])
@@ -82,7 +91,7 @@ class preprocess():
 
         return cut_data
 
-    def spectrogram(self, data, sample_rate,  nfft=1024, noverlap=512, window="hann"):
+    def spectrogram(self, data, sample_rate,  nperseg=1024, noverlap=512, window="hann"):
         """ Compute the spectrogram of a given signal
 
         This will compute the spectrogram for both channels of the signal.
@@ -101,16 +110,16 @@ class preprocess():
         if data.shape[1] > 1:
             # Spectrogram for channel 0
             ch0f, ch0t, ch0Sxx = signal.spectrogram(data[:,0], sample_rate,
-                                            nfft=nfft, noverlap=noverlap, window=window)
+                                            nperseg=nperseg, noverlap=noverlap, window=window)
 
             ch1f, ch1t, ch1Sxx = signal.spectrogram(data[:,1], sample_rate,
-                                            nfft=nfft, noverlap=noverlap, window=window)
+                                            nperseg=nperseg, noverlap=noverlap, window=window)
 
             return [ch0Sxx, ch1Sxx]
 
         # If 1 channel
         ch0f, ch0t, ch0Sxx = signal.spectrogram(data, sample_rate,
-                                        nfft=nfft, noverlap=noverlap, window=window)
+                                        nfft=nperseg, noverlap=nperseg, window=window)
 
         return ch0Sxx
 
