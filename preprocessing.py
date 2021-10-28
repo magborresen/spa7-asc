@@ -107,7 +107,7 @@ class preprocess():
 
         Args:
             data (array): Sampled data
-            eps (float): Dunno
+            eps (float): Error between previous trajectory locations
             steps (int): Dunno
 
         Returns:
