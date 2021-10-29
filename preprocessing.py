@@ -123,8 +123,18 @@ class preprocess():
 
         return ch0Sxx
 
-    def mel_spec(self):
-        return None
+    def hz2mel(self, f):
+        """ Convert frequency scale from hertz to mel
+
+        This will convert the frequency of a computed spectrogram from hertz to mel.
+
+        Args:
+            f (array): Frequency values
+
+        Returns:
+            mel frequency scale
+        """
+        return (1000/np.log(2))*np.log(1+(f/1000))
 
     def time_series(self):
         return None
