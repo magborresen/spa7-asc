@@ -25,7 +25,6 @@ from tensorflow import keras
 from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 import matplotlib.pyplot as plt
 from path import Path
-from memory_profiler import profile
 from keras.layers import Dense, Activation, Flatten, Dropout, BatchNormalization
 from keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
 from keras.models import Sequential
