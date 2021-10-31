@@ -2,6 +2,7 @@ import os
 import glob
 import re
 import numpy as np
+import math
 from tqdm import tqdm
 from scipy.io import wavfile
 from scipy import signal
@@ -22,7 +23,7 @@ class preprocess():
         self.path = path
         self.classes = ['office', 'outside', 'semi_outside', 'inside', 'inside_vehicle']
 
-    def make_training_data(self, method="spectrogram"):
+    def make_training_data(self, method="spectrogram", chunk_size=10):
         """ Finds all training data and labels classes
 
         The functio finds all training data and labels the classes.
@@ -30,6 +31,7 @@ class preprocess():
 
         Args:
             method (String): Preprocessing technique to use
+            chunk_size (int): Chunk size to split each file into
 
         Returns:
             collected_data (list): List of preprocessed collected data
@@ -46,7 +48,6 @@ class preprocess():
             pbar.set_description("Processing %s" % af)
 
             # Find associated label files
-            
             dirname = os.path.dirname(os.path.abspath(af))
             label_file = glob.glob(dirname + "/*.txt")
             
@@ -58,16 +59,21 @@ class preprocess():
             if len(label_file) > 0:
                 data = self.rm_labeled_noise(data, sample_rate, label_file[0])
 
-            if method == "spectrogram":
-                transform = self.spectrogram(data, sample_rate)
+            # Create Chunks
+            data_chunks = self.chunk_file(data, sample_rate, chunk_size)
 
-            # Check if returned data is two channels
-            if type(transform) == list:
-                collected_data.append(transform[0])
-                collected_data.append(transform[1])
-                class_labels.append(sample_class[0])
-            else:
-                collected_data.append(transform)
+            for chunk in data_chunks:
+
+                if method == "spectrogram":
+                    transform = self.spectrogram(chunk, sample_rate)
+
+                # Check if returned data is two channels
+                if type(transform) == list:
+                    collected_data.append(transform[0])
+                    collected_data.append(transform[1])
+                    class_labels.append(sample_class[0])
+                else:
+                    collected_data.append(transform)
 
         return collected_data, class_labels
 
@@ -83,13 +89,37 @@ class preprocess():
         for line in lines:
             time_labels = line.split('\t')
             stop_time = int(float(time_labels[0]) * 44100)
-            cut_data_ch0 = np.append(cut_data_ch0, data[:,0][start_time:stop_time])
-            cut_data_ch1 = np.append(cut_data_ch1, data[:,1][start_time:stop_time])
+            # Check if data is two channel
+            if data.shape[1] > 1:
+                cut_data_ch0 = np.append(cut_data_ch0, data[:,0][start_time:stop_time])
+                cut_data_ch1 = np.append(cut_data_ch1, data[:,1][start_time:stop_time])
+                cut_data = np.vstack((cut_data_ch0, cut_data_ch1)).T
+            else:
+                cut_data_ch0 = np.append(cut_data_ch0, data[start_time:stop_time])
+                cut_data = cut_data_ch0
             start_time = int(float(time_labels[1]) * 44100)
 
-        cut_data = np.vstack((cut_data_ch0, cut_data_ch1)).T
-
         return cut_data
+
+    def chunk_file(self, data, sample_rate, chunk_size):
+        chunk_data = []
+        start_sample = 0
+        samples_per_chunk = chunk_size * sample_rate
+
+        for sc in range(math.floor(len(data) / samples_per_chunk)):
+            stop_sample = sc * chunk_size * sample_rate
+            # Check if data is two channel
+            if data.shape[1] > 1:
+                chunk_ch0 = data[:,0][start_sample:stop_sample]
+                chunk_ch1 = data[:,1][start_sample:stop_sample]
+                chunk = np.vstack((chunk_ch0, chunk_ch1)).T
+            else:
+                chunk = data[start_sample:stop_sample]
+            chunk_data.append(chunk)
+            start_sample = stop_sample
+
+        return chunk_data
+
 
     def spectrogram(self, data, sample_rate,  nperseg=1024, noverlap=512, window="hann"):
         """ Compute the spectrogram of a given signal
