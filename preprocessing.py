@@ -3,6 +3,7 @@ import glob
 import re
 import numpy as np
 import math
+import soundfile as sf
 from tqdm import tqdm
 from scipy.io import wavfile
 from scipy import signal
@@ -55,7 +56,7 @@ class preprocess():
             sample_class = [c for c in self.classes if re.search(r'\b' + c + r'\b', af)]
             class_labels.append(sample_class[0])
 
-            sample_rate, data = wavfile.read(af)
+            data, sample_rate = sf.read(af)
             if len(label_file) > 0:
                 data = self.rm_labeled_noise(data, sample_rate, label_file[0])
 
