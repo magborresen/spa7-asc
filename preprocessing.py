@@ -156,49 +156,49 @@ class preprocess():
 
         return ch0Sxx
 
-	def mel_spectrogram(data, sample_rate, nfft=1024, startframe=0, endframe=data.size - 1):
-		""" Compute the mel spectrogram of a given signal
+    def mel_spectrogram(self, data, sample_rate, nfft=1024, startframe=0):
+        """ Compute the mel spectrogram of a given signal
 
-		This will compute the mel spectrogram for both channels of the signal.
+        This will compute the mel spectrogram for both channels of the signal.
 
-		Args:
-			data (array): Sampled data
-			sample_rate (int): Sample rate
-			nfft (int): fft bin size
-			startframe (int): Which sample to start from
-			endframe (int): Which sample to end with
+        Args:
+            data (array): Sampled data
+            sample_rate (int): Sample rate
+            nfft (int): fft bin size
+            startframe (int): Which sample to start from
+            endframe (int): Which sample to end with
 
-		Returns:
-			Mel spectrogram of both channels as ndarray
-		"""
+        Returns:
+            Mel spectrogram of both channels as ndarray
+        """
+        endframe=data.size - 1
+        # Make sure that data type is 32b float
+        if data.dtype != np.float32:
+            data = data.astype("float32") / np.iinfo(data.dtype).max
 
-		# Make sure that data type is 32b float
-		if data.dtype != np.float32:
-			data = data.astype("float32") / np.iinfo(data.dtype).max
+        # If 2 channels
+        if data.ndim > 1:
+            # Spectrogram for channel 0
+            ch0Sxx = librosa.power_to_db(librosa.feature.melspectrogram(
+                y=data[:, 0][startframe:endframe],
+                sr=sample_rate,
+                n_fft=nfft,
+                fmax=sample_rate / 2))
 
-		# If 2 channels
-		if data.ndim > 1:
-			# Spectrogram for channel 0
-			ch0Sxx = librosa.power_to_db(librosa.feature.melspectrogram(
-				y=data[:, 0][startframe:endframe],
-				sr=sample_rate,
-				n_fft=nfft,
-				fmax=sample_rate / 2))
+            # Spectrogram for channel 1
+            ch1Sxx = librosa.power_to_db(librosa.feature.melspectrogram(
+                y=data[:, 1][startframe:endframe],
+                sr=sample_rate,
+                n_fft=nfft,
+                fmax=sample_rate / 2))
+            return [ch0Sxx, ch1Sxx]
 
-			# Spectrogram for channel 1
-			ch1Sxx = librosa.power_to_db(librosa.feature.melspectrogram(
-				y=data[:, 1][startframe:endframe],
-				sr=sample_rate,
-				n_fft=nfft,
-				fmax=sample_rate / 2))
-			return [ch0Sxx, ch1Sxx]
-
-		# If 1 channel
-		return librosa.power_to_db(librosa.feature.melspectrogram(
-			y=data[startframe:endframe],
-			sr=sample_rate,
-			n_fft=nfft,
-			fmax=sample_rate / 2))
+        # If 1 channel
+        return librosa.power_to_db(librosa.feature.melspectrogram(
+            y=data[startframe:endframe],
+            sr=sample_rate,
+            n_fft=nfft,
+            fmax=sample_rate / 2))
 
     def hz2mel(self, f):
         """ Convert frequency scale from hertz to mel
