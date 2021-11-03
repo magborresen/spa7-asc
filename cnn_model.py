@@ -3,6 +3,8 @@ This file implements all model procedures
 """
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' #this line removes all GPU usage warnings
+import warnings
+warnings.filterwarnings("ignore")
 from os import listdir
 from os.path import isfile, join
 import numpy as np

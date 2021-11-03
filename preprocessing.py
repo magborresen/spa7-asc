@@ -14,6 +14,7 @@ from scipy.spatial.distance import pdist, squareform
 warnings.filterwarnings("error")
 
 
+
 class preprocess():
     def __init__(self, path):
         """ Intitialize the object with path to the training data
