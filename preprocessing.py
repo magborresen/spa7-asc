@@ -5,10 +5,13 @@ import numpy as np
 import math
 import soundfile as sf
 import librosa
+import warnings
 from tqdm import tqdm
 from scipy.io import wavfile
 from scipy import signal
 from scipy.spatial.distance import pdist, squareform
+
+warnings.filterwarnings("error")
 
 
 class preprocess():
@@ -64,11 +67,14 @@ class preprocess():
             data_chunks = self.chunk_file(data, sample_rate, chunk_size)
 
             for chunk in data_chunks:
+                
+                try:
+                    if method == "spectrogram":
+                        transform = self.spectrogram(chunk, sample_rate)
+                except UserWarning:
+                    continue
 
                 class_labels.append(sample_class[0])
-                
-                if method == "spectrogram":
-                    transform = self.spectrogram(chunk, sample_rate)
 
                 # Check if returned data is two channels
                 if type(transform) == list:
@@ -93,7 +99,7 @@ class preprocess():
             time_labels = line.split('\t')
             stop_time = int(float(time_labels[0]) * 44100)
             # Check if data is two channel
-            if data.shape[1] > 1:
+            if data.ndim > 1:
                 cut_data_ch0 = np.append(cut_data_ch0, data[:,0][start_time:stop_time])
                 cut_data_ch1 = np.append(cut_data_ch1, data[:,1][start_time:stop_time])
                 cut_data = np.vstack((cut_data_ch0, cut_data_ch1)).T
@@ -112,7 +118,7 @@ class preprocess():
         for sc in range(math.floor(len(data) / samples_per_chunk)):
             stop_sample = sc * chunk_size * sample_rate
             # Check if data is two channel
-            if data.shape[1] > 1:
+            if data.ndim > 1:
                 chunk_ch0 = data[:,0][start_sample:stop_sample]
                 chunk_ch1 = data[:,1][start_sample:stop_sample]
                 chunk = np.vstack((chunk_ch0, chunk_ch1)).T
@@ -140,7 +146,7 @@ class preprocess():
             Spectrogram of both channels as ndarray
         """
         # If 2 channels
-        if data.shape[1] > 1:
+        if data.ndim > 1:
             # Spectrogram for channel 0
             ch0f, ch0t, ch0Sxx = signal.spectrogram(data[:,0], sample_rate,
                                             nperseg=nperseg, noverlap=noverlap, window=window)
@@ -152,53 +158,53 @@ class preprocess():
 
         # If 1 channel
         ch0f, ch0t, ch0Sxx = signal.spectrogram(data, sample_rate,
-                                        nfft=nperseg, noverlap=nperseg, window=window)
+                                            nperseg=nperseg, noverlap=noverlap, window=window)
 
         return ch0Sxx
 
-	def mel_spectrogram(data, sample_rate, nfft=1024, startframe=0, endframe=data.size - 1):
-		""" Compute the mel spectrogram of a given signal
+    def mel_spectrogram(self, data, sample_rate, nfft=1024, startframe=0):
+        """ Compute the mel spectrogram of a given signal
 
-		This will compute the mel spectrogram for both channels of the signal.
+        This will compute the mel spectrogram for both channels of the signal.
 
-		Args:
-			data (array): Sampled data
-			sample_rate (int): Sample rate
-			nfft (int): fft bin size
-			startframe (int): Which sample to start from
-			endframe (int): Which sample to end with
+        Args:
+            data (array): Sampled data
+            sample_rate (int): Sample rate
+            nfft (int): fft bin size
+            startframe (int): Which sample to start from
+            endframe (int): Which sample to end with
 
-		Returns:
-			Mel spectrogram of both channels as ndarray
-		"""
+        Returns:
+            Mel spectrogram of both channels as ndarray
+        """
+        endframe=data.size - 1
+        # Make sure that data type is 32b float
+        if data.dtype != np.float32:
+            data = data.astype("float32") / np.iinfo(data.dtype).max
 
-		# Make sure that data type is 32b float
-		if data.dtype != np.float32:
-			data = data.astype("float32") / np.iinfo(data.dtype).max
+        # If 2 channels
+        if data.ndim > 1:
+            # Spectrogram for channel 0
+            ch0Sxx = librosa.power_to_db(librosa.feature.melspectrogram(
+                y=data[:, 0][startframe:endframe],
+                sr=sample_rate,
+                n_fft=nfft,
+                fmax=sample_rate / 2))
 
-		# If 2 channels
-		if data.ndim > 1:
-			# Spectrogram for channel 0
-			ch0Sxx = librosa.power_to_db(librosa.feature.melspectrogram(
-				y=data[:, 0][startframe:endframe],
-				sr=sample_rate,
-				n_fft=nfft,
-				fmax=sample_rate / 2))
+            # Spectrogram for channel 1
+            ch1Sxx = librosa.power_to_db(librosa.feature.melspectrogram(
+                y=data[:, 1][startframe:endframe],
+                sr=sample_rate,
+                n_fft=nfft,
+                fmax=sample_rate / 2))
+            return [ch0Sxx, ch1Sxx]
 
-			# Spectrogram for channel 1
-			ch1Sxx = librosa.power_to_db(librosa.feature.melspectrogram(
-				y=data[:, 1][startframe:endframe],
-				sr=sample_rate,
-				n_fft=nfft,
-				fmax=sample_rate / 2))
-			return [ch0Sxx, ch1Sxx]
-
-		# If 1 channel
-		return librosa.power_to_db(librosa.feature.melspectrogram(
-			y=data[startframe:endframe],
-			sr=sample_rate,
-			n_fft=nfft,
-			fmax=sample_rate / 2))
+        # If 1 channel
+        return librosa.power_to_db(librosa.feature.melspectrogram(
+            y=data[startframe:endframe],
+            sr=sample_rate,
+            n_fft=nfft,
+            fmax=sample_rate / 2))
 
     def hz2mel(self, f):
         """ Convert frequency scale from hertz to mel
