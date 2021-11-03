@@ -54,7 +54,6 @@ class preprocess():
             
             # Get the class
             sample_class = [c for c in self.classes if re.search(r'\b' + c + r'\b', af)]
-            class_labels.append(sample_class[0])
 
             data, sample_rate = sf.read(af)
             if len(label_file) > 0:
@@ -65,6 +64,8 @@ class preprocess():
 
             for chunk in data_chunks:
 
+                class_labels.append(sample_class[0])
+                
                 if method == "spectrogram":
                     transform = self.spectrogram(chunk, sample_rate)
 
