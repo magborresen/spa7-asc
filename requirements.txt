@@ -53,3 +53,4 @@ typing-extensions==3.10.0.2
 urllib3==1.26.7
 Werkzeug==2.0.2
 wrapt==1.12.1
+librosa==0.8.1
