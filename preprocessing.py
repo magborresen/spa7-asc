@@ -5,10 +5,13 @@ import numpy as np
 import math
 import soundfile as sf
 import librosa
+import warnings
 from tqdm import tqdm
 from scipy.io import wavfile
 from scipy import signal
 from scipy.spatial.distance import pdist, squareform
+
+warnings.filterwarnings("error")
 
 
 class preprocess():
@@ -64,11 +67,14 @@ class preprocess():
             data_chunks = self.chunk_file(data, sample_rate, chunk_size)
 
             for chunk in data_chunks:
+                
+                try:
+                    if method == "spectrogram":
+                        transform = self.spectrogram(chunk, sample_rate)
+                except UserWarning:
+                    continue
 
                 class_labels.append(sample_class[0])
-                
-                if method == "spectrogram":
-                    transform = self.spectrogram(chunk, sample_rate)
 
                 # Check if returned data is two channels
                 if type(transform) == list:
@@ -93,7 +99,7 @@ class preprocess():
             time_labels = line.split('\t')
             stop_time = int(float(time_labels[0]) * 44100)
             # Check if data is two channel
-            if data.shape[1] > 1:
+            if data.ndim > 1:
                 cut_data_ch0 = np.append(cut_data_ch0, data[:,0][start_time:stop_time])
                 cut_data_ch1 = np.append(cut_data_ch1, data[:,1][start_time:stop_time])
                 cut_data = np.vstack((cut_data_ch0, cut_data_ch1)).T
@@ -112,7 +118,7 @@ class preprocess():
         for sc in range(math.floor(len(data) / samples_per_chunk)):
             stop_sample = sc * chunk_size * sample_rate
             # Check if data is two channel
-            if data.shape[1] > 1:
+            if data.ndim > 1:
                 chunk_ch0 = data[:,0][start_sample:stop_sample]
                 chunk_ch1 = data[:,1][start_sample:stop_sample]
                 chunk = np.vstack((chunk_ch0, chunk_ch1)).T
@@ -140,7 +146,7 @@ class preprocess():
             Spectrogram of both channels as ndarray
         """
         # If 2 channels
-        if data.shape[1] > 1:
+        if data.ndim > 1:
             # Spectrogram for channel 0
             ch0f, ch0t, ch0Sxx = signal.spectrogram(data[:,0], sample_rate,
                                             nperseg=nperseg, noverlap=noverlap, window=window)
@@ -152,7 +158,7 @@ class preprocess():
 
         # If 1 channel
         ch0f, ch0t, ch0Sxx = signal.spectrogram(data, sample_rate,
-                                        nfft=nperseg, noverlap=nperseg, window=window)
+                                            nperseg=nperseg, noverlap=noverlap, window=window)
 
         return ch0Sxx
 
