@@ -187,7 +187,7 @@ class cnn_model:
         
         print('model evaluation')
         # and ecaluation process
-        self.model.evaluate(valAug.flow(self.testX, self.testY))
+        self.model.evaluate(datagen_val.flow(self.testX, self.testY))
 
     def model_summary(self):
         """ summary the models nodes
