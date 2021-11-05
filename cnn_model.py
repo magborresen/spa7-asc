@@ -89,13 +89,11 @@ class cnn_model:
             Returns:
                 no value
         """
-        print('before --> ', np.shape(data))
         # check size
         data, self.labels = image_size_check(data, classes_all, im_norm_size)
         
         self.data = tf.expand_dims(data, axis=-1) # add channel information to array, τηε 4thn dimemntion that is needed
         
-        print('during --> ', np.shape(self.data))
         self.data = np.array(self.data) 
         self.labels = np.array(self.labels)
         
@@ -104,7 +102,6 @@ class cnn_model:
         self.classes = find_unique_classe(classes_all) #returns a list with all main classes
         self.ClassesNum = len(self.classes)
 
-        print('after --> ', np.shape(self.data))
 
     def make_model(self):
         """ sets the NN layers, compiles the model based on optimization function
