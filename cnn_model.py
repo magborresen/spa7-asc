@@ -3,14 +3,13 @@ This file implements all model procedures
 """
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' #this line removes all GPU usage warnings
-from contextlib import suppress
 import warnings
 warnings.filterwarnings("ignore")
 from os import listdir
 from os.path import isfile, join
 import numpy as np
-from tqdm import tqdm
-from numpy.core.fromnumeric import size
+import pandas as pd
+from numpy.core.fromnumeric import shape, size
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
@@ -20,8 +19,9 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 import matplotlib.pyplot as plts
 from keras.layers import Dense, Activation, Flatten, Dropout, BatchNormalization, Resizing
-from keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
+from keras.layers import MaxPooling2D, AveragePooling2D
 from keras.models import Sequential
+from keras.layers import Conv2D
 
 def find_unique_classe(full_list):
     """ finds the unique classes out of a class list
@@ -43,6 +43,8 @@ def find_unique_classe(full_list):
 
 def image_size_check(images, labels, im_norm_size=(513, 860)):
     """ check that all objecs on list are im_norm_size
+        
+        discard non standard images from both the 'image' and 'labels' lists    
 
         Args:
             images (array): a list of numpy arrays with spectogram data
@@ -62,7 +64,7 @@ def image_size_check(images, labels, im_norm_size=(513, 860)):
             zero_indexes.append(im_index)
     image_array = np.delete(image_array, zero_indexes)
     classes_array = np.delete(classes_array, zero_indexes)
-    return image_array, classes_array
+    return image_array.tolist(), classes_array.tolist()
 
 class cnn_model:
     """ initializes a CNN classifier model
@@ -75,39 +77,48 @@ class cnn_model:
             no value
     """
     def __init__(self, data, classes_all, im_norm_size=(513, 860)):
-        self.image_size = 224
+        """ model initialization
+            
+            works for only 1 channel picture (single picture)
+            
+            Args:
+                data (list): a list with preprocess data pictures with shape (numper of images, hight, width)
+                classes_all (list): coresponding labels of data list.
+                im_norm_size (array): expected picture size (hight, width)
+
+            Returns:
+                no value
+        """
+        print('before --> ', np.shape(data))
         # check size
-        self.data, self.labels = image_size_check(data, classes_all, im_norm_size)
-        self.data = np.array(self.data)
+        data, self.labels = image_size_check(data, classes_all, im_norm_size)
+        
+        self.data = tf.expand_dims(data, axis=-1) # add channel information to array, τηε 4thn dimemntion that is needed
+        
+        print('during --> ', np.shape(self.data))
+        self.data = np.array(self.data) 
         self.labels = np.array(self.labels)
-        self.classes = find_unique_classe(classes_all)
+        
+        self.input_shape=(513, 860, 1)
+        
+        self.classes = find_unique_classe(classes_all) #returns a list with all main classes
         self.ClassesNum = len(self.classes)
-        
-        # prepare data
-        
-        # transforming class names into integers
-        #lb = LabelEncoder()
-        #self.labels = lb.fit_transform(self.labels)
-        #self.labels = to_categorical(self.labels, self.ClassesNum)
 
-        # transforming rgb scale into gray (range 0 to 1)
-        #self.data = self.data/255.0
-        self.data = np.resize(self.data, (self.data.shape[0], self.image_size, self.image_size)) # resizing the image doesn't work
-    
+        print('after --> ', np.shape(self.data))
+
     def make_model(self):
-        """ prepare and compile the model
+        """ sets the NN layers, compiles the model based on optimization function
 
-        Args:
-            self
-        
-        Returns:
-            self
+            Args:
+                self
+
+            Returns:
+                no value
         """
         self.model = Sequential()
-        #self.model.add(Rescaling(1./255))
-        self.model.add(Resizing(self.image_size, self.image_size))
         self.model.add(Conv2D(32, (3, 3), padding='same',
-                         input_shape=(64,64,3)))
+                         input_shape=self.input_shape))
+        #self.model.add(Conv2D(32, (3, 3), padding='same'))
         self.model.add(BatchNormalization()) # I added this extra
         self.model.add(Activation('relu'))
         self.model.add(Conv2D(64, (3, 3)))
@@ -138,42 +149,52 @@ class cnn_model:
         self.model.add(Activation('relu'))
         self.model.add(Dropout(0.5))
         self.model.add(Dense(self.ClassesNum, activation='softmax')) # specify the amount of output classes here
+
         print('compiling model', end="\r")
+        # compile the modelselected optimization function (Adam)
         self.model.compile(
-            keras.optimizers.Adam(1e-3),
-            loss="categorical_crossentropy",
+            keras.optimizers.Adam(1e-3), # optimization function (Adam) and learn rate
+            loss="categorical_crossentropy", # depents on the type of classification
             metrics=["accuracy"])
         print('compiling model - done')
     
     def train_model(self, model_name = "new_model", epoch = 50, validation_split=0.25, batch_size=32):
+        """ handles the training process
+
+        Splits the data for train and evaluation processes. Prepares the data for input in CNN and fits them.
+        it stores a model in every epoch itteration
+
+            Args:
+                model_name (char): output name of the model
+                epoch (int): number of iterations of retraining process
+                validation_split (float): persent of validation data with range 0. to 1
+                batch_size (int): training examples utilized in one iteration
+
+            Returns:
+                no value
+        """
         self.epoch = epoch
+        self.validation_split=validation_split # persent of validation data
+        self.batch_size=batch_size
+        
+        # split data into train and validation data
+        # X data are numpy data
+        # Y data are coresponding labels
         (self.trainX, self.testX, self.trainY, self.testY) = train_test_split(self.data, self.labels,
 	        test_size=validation_split, stratify=self.labels, random_state=42)
-        #self.dataset_train = tf.data.Dataset.from_tensor_slices(self.data) #might don't work
-        #self.dataset = self.dataset.map(lambda x, y: x) TODO
-        # initialize the training data augmentation object
-        datagen_train = ImageDataGenerator(
-            #validation_split = validation_split, 
-            rescale=1. / 255,
-            zca_whitening=True,
-            data_format="channels_first"
-            )
         
-        datagen_val = ImageDataGenerator(
-            rescale=1. / 255,
-            data_format="channels_first"
-            )
-    
+        # prepares data from numpy arrays into readable form for the model
+        datagen_train = ImageDataGenerator()
+        datagen_val = ImageDataGenerator()
+        
+        # stores the model 
         callbacks = [
             keras.callbacks.ModelCheckpoint(model_name+"_{epoch}.h5"),
         ]
-        
-        # (std, mean, and principal components if ZCA whitening is applied)
-        datagen_train.fit(self.trainX)
 
-        # fit data to the model
+        # fits the data into model and starts the training process
         self.model.fit(
-            x = datagen_train.flow(
+                x = datagen_train.flow(
                 self.trainX, 
                 self.trainY, 
                 batch_size=batch_size
@@ -184,18 +205,6 @@ class cnn_model:
             validation_data=datagen_val.flow(self.testX, self.testY),
             validation_steps=len(self.testX) // batch_size
         )
-        
+
         print('model evaluation')
-        # and ecaluation process
         self.model.evaluate(datagen_val.flow(self.testX, self.testY))
-
-    def model_summary(self):
-        """ summary the models nodes
-
-        Args:
-            self
-        
-        Returns:
-            prints the characteristics
-        """
-        self.model.summary()
