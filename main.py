@@ -17,5 +17,5 @@ data, classes = prep.make_training_data()
 
 # CNN model
 spa_cnn_model = cnn_model(data, classes, im_norm_size=(513, 860))
-#spa_cnn_model.make_model() uncomment for check thestracture of model
-spa_cnn_model.train_model(model_name = "SPA_model", epoch = 4)
+spa_cnn_model.make_model()
+spa_cnn_model.train_model(model_name = "SPA_model", epoch = 2)

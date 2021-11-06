@@ -26,7 +26,8 @@ from keras.layers import Conv2D
 def find_unique_classe(full_list):
     """ finds the unique classes out of a class list
 
-        Transforms the char string list into corresponding indexes
+        Sparsely encodes the char string list into corresponding indexes
+        in [0, 1, 2, 3, 4] form
         class of full_list = unique_list(class_name)
         this is needed for fiting the model
 
@@ -35,15 +36,16 @@ def find_unique_classe(full_list):
 
         Returns:
             list of unique classes
-            transformed indo indexes full_list
+            sparsely encoded classes of full_list
     """
     unique_list = []
-    for class_name in full_list:
+    for c_index, class_name in enumerate(full_list):
         # check if exists in unique_list or not
         if class_name not in unique_list:
             unique_list.append(class_name)
-        class_name = unique_list.index(class_name) 
-    return(unique_list, full_list)
+        # transforms the list element from string to index int
+        full_list[c_index] = int(unique_list.index(class_name))
+    return unique_list, full_list
 
 def image_size_check(images, labels, im_norm_size=(513, 860)):
     """ check that all objecs on list are im_norm_size
@@ -97,6 +99,7 @@ class cnn_model:
         self.classes, classes_all = find_unique_classe(classes_all) #returns a list with all main classes
         # check size
         data, self.labels = image_size_check(data, classes_all, im_norm_size)
+    
         
         self.data = tf.expand_dims(data, axis=-1) # add channel information to array, the 4thn dimemntion that is needed
         
@@ -122,42 +125,42 @@ class cnn_model:
         self.model.add(Conv2D(32, (3, 3), padding='same',
                          input_shape=self.input_shape))
         #self.model.add(Conv2D(32, (3, 3), padding='same'))
-        self.model.add(BatchNormalization()) # I added this extra
+        #self.model.add(BatchNormalization()) # I added this extra
         self.model.add(Activation('relu'))
-        self.model.add(Conv2D(64, (3, 3)))
-        self.model.add(BatchNormalization()) # I added this extra
-        self.model.add(Activation('relu'))
-        self.model.add(MaxPooling2D(pool_size=(2, 2)))
-        self.model.add(Dropout(0.25))
-        self.model.add(Conv2D(64, (3, 3), padding='same'))
-        self.model.add(BatchNormalization()) # I added this extra
-        self.model.add(Activation('relu'))
-        self.model.add(Conv2D(64, (3, 3)))
-        self.model.add(BatchNormalization()) # I added this extra
-        self.model.add(Activation('relu'))
-        self.model.add(MaxPooling2D(pool_size=(2, 2)))
-        self.model.add(Dropout(0.5))
-        self.model.add(Conv2D(128, (3, 3), padding='same'))
-        self.model.add(BatchNormalization()) # I added this extra
-        self.model.add(Activation('relu'))
-        self.model.add(Conv2D(128, (3, 3)))
-        self.model.add(BatchNormalization()) # I added this extra
-        self.model.add(Activation('relu'))
-        #model.add(MaxPooling2D(pool_size=(2, 2))) # I removed this and add Average
-        self.model.add(AveragePooling2D((2,2), strides=2, padding="same")) # I added this
-        self.model.add(Dropout(0.5))
+        #self.model.add(Conv2D(64, (3, 3)))
+        #self.model.add(BatchNormalization()) # I added this extra
+        #self.model.add(Activation('relu'))
+        #self.model.add(MaxPooling2D(pool_size=(2, 2)))
+        #self.model.add(Dropout(0.25))
+        #self.model.add(Conv2D(64, (3, 3), padding='same'))
+        #self.model.add(BatchNormalization()) # I added this extra
+        #self.model.add(Activation('relu'))
+        #self.model.add(Conv2D(64, (3, 3)))
+        #self.model.add(BatchNormalization()) # I added this extra
+        #self.model.add(Activation('relu'))
+        #self.model.add(MaxPooling2D(pool_size=(2, 2)))
+        #self.model.add(Dropout(0.5))
+        #self.model.add(Conv2D(128, (3, 3), padding='same'))
+        #self.model.add(BatchNormalization()) # I added this extra
+        #self.model.add(Activation('relu'))
+        #self.model.add(Conv2D(128, (3, 3)))
+        #self.model.add(BatchNormalization()) # I added this extra
+        #self.model.add(Activation('relu'))
+        ##model.add(MaxPooling2D(pool_size=(2, 2))) # I removed this and add Average
+        #self.model.add(AveragePooling2D((2,2), strides=2, padding="same")) # I added this
+        #self.model.add(Dropout(0.5))
         self.model.add(Flatten())
-        self.model.add(Dense(512))
-        self.model.add(BatchNormalization()) # I added this extra
-        self.model.add(Activation('relu'))
-        self.model.add(Dropout(0.5))
+        #self.model.add(Dense(512))
+        #self.model.add(BatchNormalization()) # I added this extra
+        #self.model.add(Activation('relu'))
+        #self.model.add(Dropout(0.5))
         self.model.add(Dense(self.ClassesNum, activation='softmax')) # specify the amount of output classes here
 
         print('compiling model', end="\r")
         # compile the modelselected optimization function (Adam)
         self.model.compile(
             keras.optimizers.Adam(1e-3), # optimization function (Adam) and learn rate
-            loss="spase_categorical_crossentropy", # depents on the type of classification
+            loss="sparse_categorical_crossentropy", # depents on the type of classification
             metrics=["accuracy"])
         print('compiling model - done')
     
@@ -202,11 +205,11 @@ class cnn_model:
                 self.trainY, 
                 batch_size=batch_size
                 ),
-            epochs=self.epoch,
-            steps_per_epoch=len(self.trainX) // self.batch_size,
-            callbacks=callbacks,
+            #steps_per_epoch=len(self.trainX) // self.batch_size,
+            #callbacks=callbacks,
             validation_data=datagen_val.flow(self.testX, self.testY),
-            validation_steps=len(self.testX) // self.batch_size
+            epochs=self.epoch,
+            #validation_steps=len(self.testX) // self.batch_size
         )
 
         print('model evaluation')
