@@ -26,20 +26,24 @@ from keras.layers import Conv2D
 def find_unique_classe(full_list):
     """ finds the unique classes out of a class list
 
-        for use with preprocessing output before fitting into model
+        Transforms the char string list into corresponding indexes
+        class of full_list = unique_list(class_name)
+        this is needed for fiting the model
 
         Args:
             full_list (array): the 'classes' output of preprocesing
 
         Returns:
             list of unique classes
+            transformed indo indexes full_list
     """
-    unique_list = [] 
+    unique_list = []
     for class_name in full_list:
         # check if exists in unique_list or not
         if class_name not in unique_list:
             unique_list.append(class_name)
-    return(unique_list)
+        class_name = unique_list.index(class_name) 
+    return(unique_list, full_list)
 
 def image_size_check(images, labels, im_norm_size=(513, 860)):
     """ check that all objecs on list are im_norm_size
@@ -89,18 +93,20 @@ class cnn_model:
             Returns:
                 no value
         """
+        # find unique and transform the label format
+        self.classes, classes_all = find_unique_classe(classes_all) #returns a list with all main classes
         # check size
         data, self.labels = image_size_check(data, classes_all, im_norm_size)
         
-        self.data = tf.expand_dims(data, axis=-1) # add channel information to array, τηε 4thn dimemntion that is needed
+        self.data = tf.expand_dims(data, axis=-1) # add channel information to array, the 4thn dimemntion that is needed
         
         self.data = np.array(self.data) 
         self.labels = np.array(self.labels)
         
-        self.input_shape=(513, 860, 1)
+        im_h, im_w = im_norm_size
+        self.input_shape=(im_h, im_w, 1) # first node input shape, same as spectograms
         
-        self.classes = find_unique_classe(classes_all) #returns a list with all main classes
-        self.ClassesNum = len(self.classes)
+        self.ClassesNum = len(self.classes) # number of total classes for use with the last dense node
 
 
     def make_model(self):
@@ -151,7 +157,7 @@ class cnn_model:
         # compile the modelselected optimization function (Adam)
         self.model.compile(
             keras.optimizers.Adam(1e-3), # optimization function (Adam) and learn rate
-            loss="categorical_crossentropy", # depents on the type of classification
+            loss="spase_categorical_crossentropy", # depents on the type of classification
             metrics=["accuracy"])
         print('compiling model - done')
     
@@ -197,11 +203,24 @@ class cnn_model:
                 batch_size=batch_size
                 ),
             epochs=self.epoch,
-            steps_per_epoch=len(self.trainX) // batch_size,
+            steps_per_epoch=len(self.trainX) // self.batch_size,
             callbacks=callbacks,
             validation_data=datagen_val.flow(self.testX, self.testY),
-            validation_steps=len(self.testX) // batch_size
+            validation_steps=len(self.testX) // self.batch_size
         )
 
         print('model evaluation')
         self.model.evaluate(datagen_val.flow(self.testX, self.testY))
+    
+    def model_summary(self):
+        """ prints the stracture of the CNN model
+        
+        Summarize in printed ouput the stracture diagram of node shapes
+
+        Args:
+            self
+        
+        returns
+            printed output
+        """
+        self.model.summary()
