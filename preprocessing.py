@@ -155,13 +155,13 @@ class preprocess():
             ch1f, ch1t, ch1Sxx = signal.spectrogram(data[:,1], sample_rate,
                                             nperseg=nperseg, noverlap=noverlap, window=window)
 
-            return [ch0Sxx, ch1Sxx]
+            return [10*np.log10(ch0Sxx), 10*np.log10(ch1Sxx)]
 
         # If 1 channel
         ch0f, ch0t, ch0Sxx = signal.spectrogram(data, sample_rate,
                                             nperseg=nperseg, noverlap=noverlap, window=window)
 
-        return ch0Sxx
+        return 10*np.log10(ch0Sxx)
 
     def mel_spectrogram(self, data, sample_rate, nfft=1024, startframe=0):
         """ Compute the mel spectrogram of a given signal
