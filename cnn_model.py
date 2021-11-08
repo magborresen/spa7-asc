@@ -23,54 +23,7 @@ from keras.layers import MaxPooling2D, AveragePooling2D
 from keras.models import Sequential
 from keras.layers import Conv2D
 
-def find_unique_classe(full_list):
-    """ finds the unique classes out of a class list
 
-        Sparsely encodes the char string list into corresponding indexes
-        in [0, 1, 2, 3, 4] form
-        class of full_list = unique_list(class_name)
-        this is needed for fiting the model
-
-        Args:
-            full_list (array): the 'classes' output of preprocesing
-
-        Returns:
-            list of unique classes
-            sparsely encoded classes of full_list
-    """
-    unique_list = []
-    for c_index, class_name in enumerate(full_list):
-        # check if exists in unique_list or not
-        if class_name not in unique_list:
-            unique_list.append(class_name)
-        # transforms the list element from string to index int
-        full_list[c_index] = int(unique_list.index(class_name))
-    return unique_list, full_list
-
-def image_size_check(images, labels, im_norm_size=(513, 860)):
-    """ check that all objecs on list are im_norm_size
-        
-        discard non standard images from both the 'image' and 'labels' lists    
-
-        Args:
-            images (array): a list of numpy arrays with spectogram data
-            classes (array): the corresponding class name of each spectogram
-            in_norm_size (array): image size expected
-
-        Returns:
-            image_array (array): new list of numpy arrays with only expecter spectogram data 
-            classes_array (array): new list of corresponding class name of each spectogram
-    """
-    image_array = np.array(images)
-    classes_array = np.array(labels)
-    #find all zero sizes
-    zero_indexes = []
-    for im_index, image in enumerate(image_array):
-        if image.shape!=im_norm_size:
-            zero_indexes.append(im_index)
-    image_array = np.delete(image_array, zero_indexes)
-    classes_array = np.delete(classes_array, zero_indexes)
-    return image_array.tolist(), classes_array.tolist()
 
 class cnn_model:
     """ initializes a CNN classifier model
@@ -96,9 +49,9 @@ class cnn_model:
                 no value
         """
         # find unique and transform the label format
-        self.classes, classes_all = find_unique_classe(classes_all) #returns a list with all main classes
+        self.classes, classes_all = self.find_unique_classe(classes_all) #returns a list with all main classes
         # check size
-        data, self.labels = image_size_check(data, classes_all, im_norm_size)
+        data, self.labels = self.image_size_check(data, classes_all, im_norm_size)
     
         
         self.data = tf.expand_dims(data, axis=-1) # add channel information to array, the 4thn dimemntion that is needed
@@ -116,7 +69,7 @@ class cnn_model:
         """ sets the NN layers, compiles the model based on optimization function
 
             Args:
-                self
+                None
 
             Returns:
                 no value
@@ -221,9 +174,58 @@ class cnn_model:
         Summarize in printed ouput the stracture diagram of node shapes
 
         Args:
-            self
+            None
         
         returns
             printed output
         """
         self.model.summary()
+    
+    def find_unique_classe(self, full_list):
+        """ finds the unique classes out of a class list
+
+            Sparsely encodes the char string list into corresponding indexes
+            in [0, 1, 2, 3, 4] form
+            class of full_list = unique_list(class_name)
+            this is needed for fiting the model
+
+            Args:
+                full_list (array): the 'classes' output of preprocesing
+
+            Returns:
+                list of unique classes
+                sparsely encoded classes of full_list
+        """
+        unique_list = []
+        for c_index, class_name in enumerate(full_list):
+            # check if exists in unique_list or not
+            if class_name not in unique_list:
+                unique_list.append(class_name)
+            # transforms the list element from string to index int
+            full_list[c_index] = int(unique_list.index(class_name))
+        return unique_list, full_list
+
+    def image_size_check(self, images, labels, im_norm_size=(513, 860)):
+        """ check that all objecs on list are im_norm_size
+
+            discard non standard images from both the 'image' and 'labels' lists    
+
+            Args:
+                images (array): a list of numpy arrays with spectogram data
+                classes (array): the corresponding class name of each spectogram
+                in_norm_size (array): image size expected
+
+            Returns:
+                image_array (array): new list of numpy arrays with only expecter spectogram data 
+                classes_array (array): new list of corresponding class name of each spectogram
+        """
+        image_array = np.array(images)
+        classes_array = np.array(labels)
+        #find all zero sizes
+        zero_indexes = []
+        for im_index, image in enumerate(image_array):
+            if image.shape!=im_norm_size:
+                zero_indexes.append(im_index)
+        image_array = np.delete(image_array, zero_indexes)
+        classes_array = np.delete(classes_array, zero_indexes)
+        return image_array.tolist(), classes_array.tolist()
