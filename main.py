@@ -18,4 +18,5 @@ data, classes = prep.make_training_data()
 # CNN model
 spa_cnn_model = cnn_model(data, classes, im_norm_size=(513, 860))
 spa_cnn_model.make_model()
+#spa_cnn_model.model_summary() uncoment to check model node structure
 spa_cnn_model.train_model(model_name = "SPA_model", epoch = 2)

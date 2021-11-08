@@ -206,7 +206,7 @@ class cnn_model:
                 batch_size=batch_size
                 ),
             #steps_per_epoch=len(self.trainX) // self.batch_size,
-            #callbacks=callbacks,
+            callbacks=callbacks,
             validation_data=datagen_val.flow(self.testX, self.testY),
             epochs=self.epoch,
             #validation_steps=len(self.testX) // self.batch_size
