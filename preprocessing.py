@@ -61,7 +61,7 @@ class preprocess():
         pbar = tqdm(audio_files)
         for af in pbar:
             # Progress bar, just for show
-            processing_name = af.split("\\")
+            processing_name = af.split("/")
             pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
 
             # Find associated label files
