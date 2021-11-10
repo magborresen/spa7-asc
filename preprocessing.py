@@ -138,6 +138,7 @@ class preprocess():
         return chunk_data
 
     def save_as_img(self, data, classes):
+        print("Saving as Images")
         for i in range(len(data)):
             filedir = os.path.join(self.dirname, 'training_img', classes[i])
             if not os.path.exists(filedir):
