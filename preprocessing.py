@@ -6,6 +6,7 @@ import math
 import soundfile as sf
 import librosa
 import warnings
+from matplotlib.image import imsave
 from tqdm import tqdm
 from scipy.io import wavfile
 from scipy import signal
@@ -27,9 +28,10 @@ class preprocess():
         """
 
         self.path = path
+        self.dirname = os.path.dirname(__file__)
         self.classes = ['office', 'outside', 'semi_outside', 'inside', 'inside_vehicle']
 
-    def make_training_data(self, method="spectrogram", chunk_size=10):
+    def make_training_data(self, method="spectrogram", chunk_size=10, save_img=True):
         """ Finds all training data and labels classes
 
         The functio finds all training data and labels the classes.
@@ -84,8 +86,13 @@ class preprocess():
                     class_labels.append(sample_class[0])
                 else:
                     collected_data.append(transform)
+        
+        if save_img:
+            self.save_as_img(collected_data, class_labels)
+            return None
 
-        return collected_data, class_labels
+        else:
+            return collected_data, class_labels
 
     def rm_labeled_noise(self, data, sample_rate, label_file_path):
         cut_data_ch0 = np.array([])
@@ -129,6 +136,15 @@ class preprocess():
             start_sample = stop_sample
 
         return chunk_data
+
+    def save_as_img(self, data, classes):
+        for i in range(len(data)):
+            filedir = os.path.join(self.dirname, 'training_img', classes[i])
+            if not os.path.exists(filedir):
+                os.makedirs(filedir)
+            filename = os.path.join(self.dirname, 'training_img', classes[i], f"img{i}.png")
+            imsave(filename, data[i])
+
 
 
     def spectrogram(self, data, sample_rate,  nperseg=1024, noverlap=512, window="hann"):

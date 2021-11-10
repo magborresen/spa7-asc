@@ -148,3 +148,7 @@ training_data/
 .vscode
 .vscode/
 .vscode/*
+
+# Training data
+training_img/
+training_img
