@@ -211,10 +211,10 @@ class preprocess():
             try:
                 return [10*np.log10(ch0Sxx), 10*np.log10(ch1Sxx)]
             except RuntimeWarning:
-                if np.amax(10*np.log10(ch0Sxx)) < 0.000001:
-                    return 10*np.log10(ch1Sxx)
-                elif np.amax(10*np.log10(ch0Sxx)) < 0.000001:
+                try:
                     return 10*np.log10(ch0Sxx)
+                except RuntimeWarning:
+                    return 10*np.log10(ch1Sxx)
 
         # If 1 channel
         ch0f, ch0t, ch0Sxx = signal.spectrogram(data, sample_rate,
