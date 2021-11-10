@@ -10,10 +10,6 @@ dirname = os.path.dirname(__file__)
 
 training_img_dir = os.path.join(dirname, "training")
 
-# Use dirname in prep object when running on the server. Otherwise, insert an absolute path to the training data folder
-prep = preprocess(training_folder)
-
-
 train_path = training_img_dir
 valid_path = os.path.join(dirname, "vali")
 test_path = os.path.join(dirname, "test")

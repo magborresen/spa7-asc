@@ -82,7 +82,7 @@ class CNN:
         ])
         model.summary()
         model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
-        model.fit(x=train_batches, validation_data=valid_batches, epochs=2, verbose=2)
+        model.fit(x=train_batches, validation_data=valid_batches, epochs=5, verbose=2)
         return model
 
     def Test_CNN(self, model, test_batches):
