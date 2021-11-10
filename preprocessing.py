@@ -34,7 +34,7 @@ class preprocess():
 
     def make_training_data(self, method="spectrogram", chunk_size=10, 
                             save_img=True, test_size=0.1, vali_size=0.1):
-                            
+
         """ Finds all training data and labels classes
 
         The function finds all training data and labels the classes.
@@ -61,7 +61,8 @@ class preprocess():
         pbar = tqdm(audio_files)
         for af in pbar:
             # Progress bar, just for show
-            pbar.set_description("Processing %s" % af)
+            processing_name = af.split("\\")
+            pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
 
             # Find associated label files
             dirname = os.path.dirname(os.path.abspath(af))
