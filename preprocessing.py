@@ -208,7 +208,13 @@ class preprocess():
             ch1f, ch1t, ch1Sxx = signal.spectrogram(data[:,1], sample_rate,
                                             nperseg=nperseg, noverlap=noverlap, window=window)
 
-            return [10*np.log10(ch0Sxx), 10*np.log10(ch1Sxx)]
+            try:
+                return [10*np.log10(ch0Sxx), 10*np.log10(ch1Sxx)]
+            except RuntimeWarning:
+                if np.amax(10*np.log10(ch0Sxx)) < 0.000001:
+                    return 10*np.log10(ch1Sxx)
+                elif np.amax(10*np.log10(ch0Sxx)) < 0.000001:
+                    return 10*np.log10(ch0Sxx)
 
         # If 1 channel
         ch0f, ch0t, ch0Sxx = signal.spectrogram(data, sample_rate,
