@@ -11,6 +11,7 @@ from tqdm import tqdm
 from scipy.io import wavfile
 from scipy import signal
 from scipy.spatial.distance import pdist, squareform
+from sklearn.model_selection import train_test_split
 
 warnings.filterwarnings("error")
 
@@ -31,15 +32,22 @@ class preprocess():
         self.dirname = os.path.dirname(__file__)
         self.classes = ['office', 'outside', 'semi_outside', 'inside', 'inside_vehicle']
 
-    def make_training_data(self, method="spectrogram", chunk_size=10, save_img=True):
+    def make_training_data(self, method="spectrogram", chunk_size=10, 
+                            save_img=True, test_size=0.1, vali_size=0.1):
+
         """ Finds all training data and labels classes
 
-        The functio finds all training data and labels the classes.
-        It will also preprocess the data into the given transform
+        The function finds all training data and labels the classes.
+        It will also preprocess the data into the given transform.
+        The function will return arrays if save_img is False.
+        Otherwise it will save the data as images
 
         Args:
             method (String): Preprocessing technique to use
             chunk_size (int): Chunk size to split each file into
+            save_img (bool): Whether to save the data as images or return them as arrays
+            test_size (float): Size of test data given in percentage between 0 and 1
+            vali_size (float): Size of validation data given in percentage between 0 and 1
 
         Returns:
             collected_data (list): List of preprocessed collected data
@@ -53,7 +61,8 @@ class preprocess():
         pbar = tqdm(audio_files)
         for af in pbar:
             # Progress bar, just for show
-            pbar.set_description("Processing %s" % af)
+            processing_name = af.split("\\")
+            pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
 
             # Find associated label files
             dirname = os.path.dirname(os.path.abspath(af))
@@ -86,9 +95,23 @@ class preprocess():
                     class_labels.append(sample_class[0])
                 else:
                     collected_data.append(transform)
-        
+
+        # Split training and validation data
+        train_data, vali_data, train_labels, vali_labels = train_test_split(collected_data, 
+                                                                            class_labels,
+                                                                            test_size=vali_size,
+                                                                            random_state=42)
+
+        # Split training and test data based on the previous split.
+        train_data, test_data, train_labels, test_labels = train_test_split(train_data, 
+                                                                            train_labels,
+                                                                            test_size=test_size,
+                                                                            random_state=42)
+
         if save_img:
-            self.save_as_img(collected_data, class_labels)
+            self.save_as_img(train_data, train_labels, 'training')
+            self.save_as_img(vali_data, vali_labels, 'vali')
+            self.save_as_img(test_data, test_labels, 'test')
             return None
 
         else:
@@ -137,13 +160,26 @@ class preprocess():
 
         return chunk_data
 
-    def save_as_img(self, data, classes):
-        print("Saving as Images")
-        for i in range(len(data)):
-            filedir = os.path.join(self.dirname, 'training_img', classes[i])
+    def save_as_img(self, data, classes, data_type):
+        """ Saves the given data as images
+
+        The function matches the class data to the training data
+        and gives the saved png file as the class name plus some number
+
+        Args:
+            data (array): Spectrogram image data 2D
+            classes (array): Classes with index corresponding to the data
+            data_type (String): Which main folder to save the data to e.g. training
+
+        Returns:
+            None
+        """
+        print(f"Saving {data_type} data as images")
+        for i in tqdm(range(len(data))):
+            filedir = os.path.join(self.dirname, data_type, classes[i])
             if not os.path.exists(filedir):
                 os.makedirs(filedir)
-            filename = os.path.join(self.dirname, 'training_img', classes[i], f"img{i}.png")
+            filename = os.path.join(self.dirname, data_type, classes[i], classes[i] + f"{i}.png")
             imsave(filename, data[i])
 
 
@@ -266,13 +302,13 @@ class preprocess():
             ch1data = data[:,1]
             ch0dist = pdist(ch0data[:,None])
             ch0dist = np.floor(ch0dist/eps)
-            ch0dist[dist > steps] = steps
+            ch0dist[ch0dist > steps] = steps
             # Convert distance vector to matrix
             ch0Z = squareform(ch0dist)
 
             ch1dist = pdist(ch1data[:,None])
             ch1dist = np.floor(ch1dist/eps)
-            ch1dist[dist > steps] = steps
+            ch1dist[ch1dist > steps] = steps
             # Convert distance vector to matrix
             ch1Z = squareform(ch1dist)
             return [ch0Z, ch1Z]
@@ -280,7 +316,7 @@ class preprocess():
         ch0data = data[:,0]
         ch0dist = pdist(ch0data[:,None])
         ch0dist = np.floor(ch0dist/eps)
-        ch0dist[dist > steps] = steps
+        ch0dist[ch0dist > steps] = steps
         # Convert distance vector to matrix
         ch0Z = squareform(ch0dist)
 
