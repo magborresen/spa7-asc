@@ -12,6 +12,7 @@ import pandas as pd
 from numpy.core.fromnumeric import shape, size
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.utils import to_categorical
@@ -22,6 +23,8 @@ from keras.layers import Dense, Activation, Flatten, Dropout, BatchNormalization
 from keras.layers import MaxPooling2D, AveragePooling2D
 from keras.models import Sequential
 from keras.layers import Conv2D
+from random import randrange
+from tabulate import tabulate
 
 
 
@@ -64,6 +67,10 @@ class cnn_model:
         
         self.ClassesNum = len(self.classes) # number of total classes for use with the last dense node
 
+    def load_model(self, model_path):
+        """ load .h5 model
+        """
+        self.model.load_model(model_path)
 
     def make_model(self):
         """ sets the NN layers, compiles the model based on optimization function
@@ -143,8 +150,8 @@ class cnn_model:
 	        test_size=validation_split, stratify=self.labels, random_state=42)
         
         # prepares data from numpy arrays into readable form for the model
-        datagen_train = ImageDataGenerator()
-        datagen_val = ImageDataGenerator()
+        datagen_train = ImageDataGenerator() #class_mode="sparse"
+        datagen_val = ImageDataGenerator() #class_mode="sparse"
         
         # stores the model 
         callbacks = [
@@ -156,13 +163,16 @@ class cnn_model:
                 x = datagen_train.flow(
                 self.trainX, 
                 self.trainY, 
-                batch_size=batch_size
+                batch_size=self.batch_size
                 ),
-            #steps_per_epoch=len(self.trainX) // self.batch_size,
+            steps_per_epoch=len(self.trainX) // self.batch_size,
             callbacks=callbacks,
-            validation_data=datagen_val.flow(self.testX, self.testY),
+            validation_data=datagen_val.flow(
+                self.testX, 
+                self.testY, 
+                batch_size=self.batch_size),
             epochs=self.epoch,
-            #validation_steps=len(self.testX) // self.batch_size
+            validation_steps=len(self.testX) // self.batch_size
         )
 
         print('model evaluation')
@@ -180,6 +190,71 @@ class cnn_model:
             printed output
         """
         self.model.summary()
+    
+    def make_test_data(self, amount = 10):
+        """ separates a subset of data for test the model
+
+        Args:
+            None
+        
+        Returns:
+            test_data (array): an array of separated data that do not go for training or validation
+
+        """
+        test_data = []
+        test_labels = []
+        for i in range(amount):
+            rand_index = randrange(len(self.data))
+            test_data.append(self.data[rand_index])
+            test_labels.append(self.labels[rand_index]) 
+            np.delete(self.data, rand_index)
+            np.delete(self.labels, rand_index)
+        np.array(test_data)
+        np.array(test_labels)
+        return test_data, test_labels
+    
+    def predict(self, test_data, quantity='multi'):
+        """ calls the predict function of model with unknown data
+
+        predicts take place either on set of unknown data or a single batch
+
+        Args:
+            unknown_data (array or batch): data for prediction
+            quantity (String): 'multi' or 'single'
+
+        Returns
+            predicted class
+        """
+        x = np.array(test_data)
+        if quantity=='multi':
+            predictions = self.model.predict(x, batch_size=None, verbose=0, steps=None, callbacks=None, max_queue_size=10, workers=1, use_multiprocessing=False)
+        elif quantity=='single':
+            predictions = self.model.predict_on_batch(x)
+        return predictions
+    
+    def comf_matrix(self, predictions, test_labels):
+        """ prints confusion matrix
+
+        Args:
+            predictions (array): [description]
+            test_label (array): [description]
+        
+        Returns:
+            None
+        """
+        rounded_predictions=np.argmax(predictions, axis=1)
+        cm = confusion_matrix(test_labels, rounded_predictions)
+        cm = np.array(cm)
+        headers = np.append(' ', self.classes)
+        try:
+            table = tabulate(
+                np.concatenate((np.expand_dims(self.classes, -1), cm), axis=1), 
+                headers=headers, 
+                tablefmt="fancy_grid")
+            print(table)
+        except:
+            print('failed to print confusion matrix')
+
     
     def find_unique_classe(self, full_list):
         """ finds the unique classes out of a class list
@@ -229,3 +304,4 @@ class cnn_model:
         image_array = np.delete(image_array, zero_indexes)
         classes_array = np.delete(classes_array, zero_indexes)
         return image_array.tolist(), classes_array.tolist()
+    
