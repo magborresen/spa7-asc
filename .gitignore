@@ -152,3 +152,9 @@ training_data/
 # Training data
 training_img/
 training_img
+training/
+training
+vali/
+vali
+test/
+test

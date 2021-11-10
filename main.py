@@ -1,7 +1,7 @@
 import os
 import warnings
 from preprocessing import preprocess
-from cnn_model import cnn_model
+#from cnn_model import cnn_model
 
 warnings.filterwarnings("ignore", '.*Chunk*.')
 
