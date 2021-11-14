@@ -253,6 +253,7 @@ class preprocess():
         Returns:
             None
         """
+        data_type = data_type.lower()
         if data_type == "training":
             data = self.train_img
             classes = self.train_labels
@@ -408,6 +409,16 @@ class preprocess():
         return ch0Z
 
     def awgn(self, x):
+        """ Additive White Gaussian Noise
+
+        This function adds white gaussian noise to the given signal x.
+
+        Args:
+            x (array): Input signal
+
+        Returns:
+            The signal with awgn
+        """
         wgn = np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
         return np.add(x, wgn)
         
