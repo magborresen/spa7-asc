@@ -86,8 +86,7 @@ class preprocess():
             data, self._sample_rate = sf.read(af)
             if len(label_file) > 0:
                 data = self.rm_labeled_noise(data, label_file[0])
-
-
+                
             # Create Chunks
             data_chunks = self.chunk_file(data)
 
