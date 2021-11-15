@@ -69,6 +69,7 @@ class preprocess():
         """
 
         class_labels = []
+        collected_data = []
         print("\nPreprocessing data into " + method + " data\n")
         pbar = tqdm(self._audio_files)
         for af in pbar:
@@ -90,44 +91,51 @@ class preprocess():
             # Create Chunks
             data_chunks = self.chunk_file(data)
 
-            # Create matching labels for the chunks
-            for chunk in data_chunks:
-                class_labels.append(sample_class[0])
+            # Create matching labels for the chunks and sort out empty chunks
+            for i in range(len(data_chunks)):
+                if len(data_chunks[i]) != 0:
+                    class_labels.append(sample_class[0])
+                    collected_data.append(data_chunks[i])
 
-            # Split training and validation data
-            self.train_data, self.vali_data, self.train_labels, self.vali_labels = train_test_split(data_chunks, 
-                                                                                class_labels,
-                                                                                test_size=vali_size,
-                                                                                random_state=42)
 
-            # Split training and test data based on the previous split.
-            self.train_data, self.test_data, self.train_labels, self.test_labels = train_test_split(self.train_data, 
-                                                                                self.train_labels,
-                                                                                test_size=test_size,
-                                                                                random_state=42)
 
-            # Convert test data using selected noise and image model
-            for d in self.test_data:
-                if add_noise == "awgn":
-                    y = self.awgn(d)
-                if method.lower() == "spectrogram":
-                    self.test_img.append(self.spectrogram(y))
+        # Split training and validation data
+        self.train_data, self.vali_data, self.train_labels, self.vali_labels = train_test_split(collected_data, 
+                                                                            class_labels,
+                                                                            test_size=vali_size,
+                                                                            random_state=42)
 
-            # Convert training data using the selected method
-            for d in self.train_data:
-                if method.lower() == "spectrogram":
-                    self.train_img.append(self.spectrogram(d))
 
-            # Convert validation data using the selected method
-            for d in self.vali_data:
-                if method.lower() == "spectrogram":
-                    self.vali_img.append(self.spectrogram(d))
+        # Split training and test data based on the previous split.
+        self.train_data, self.test_data, self.train_labels, self.test_labels = train_test_split(self.train_data, 
+                                                                            self.train_labels,
+                                                                            test_size=test_size,
+                                                                            random_state=42)
 
-            # Save as images of selected
-            if save_img:
-                self.save_as_img(data_type="training")
-                self.save_as_img(data_type="validation")
-                self.save_as_img(data_type="test")
+        # Convert test data using selected noise and image model
+        for d in self.test_data:
+            if add_noise == "awgn":
+                y = self.awgn(d)
+            else:
+                y = d
+            if method.lower() == "spectrogram":
+                self.test_img.append(self.spectrogram(y))
+
+        # Convert training data using the selected method
+        for d in self.train_data:
+            if method.lower() == "spectrogram":
+                self.train_img.append(self.spectrogram(d))
+
+        # Convert validation data using the selected method
+        for d in self.vali_data:
+            if method.lower() == "spectrogram":
+                self.vali_img.append(self.spectrogram(d))
+
+        # Save as images of selected
+        if save_img:
+            self.save_as_img(data_type="training")
+            self.save_as_img(data_type="validation")
+            self.save_as_img(data_type="test")
 
         return True
 
@@ -153,23 +161,23 @@ class preprocess():
             if len(label_file) > 0:
                 noise = self.get_labeled_noise(data, label_file[0])
 
-            # Create Chunks
-            noise_chunks = self.chunk_file(noise, self._sample_rate, self._chunk_size)
+                # Create Chunks
+                noise_chunks = self.chunk_file(noise, self._sample_rate, self._chunk_size)
 
-            # Convert data using the given method
-            for chunk in noise_chunks:
-                class_labels.append(sample_class[0])
-                if method.lower() == "spectrogram":
-                    transform = self.spectrogram(self.noise_data)
-                    self.noise_img.append(transform)
-                collected_noise.append(chunk)
+                # Convert data using the given method
+                for chunk in noise_chunks:
+                    class_labels.append(sample_class[0])
+                    if method.lower() == "spectrogram":
+                        transform = self.spectrogram(self.noise_data)
+                        self.noise_img.append(transform)
+                    collected_noise.append(chunk)
 
-            self.noise_data = collected_noise
-            self.noise_labels = class_labels
+                self.noise_data = collected_noise
+                self.noise_labels = class_labels
 
-            # Save as images if selected. 
-            if save_img:
-                self.save_as_img(data_type="noise")
+        # Save as images if selected. 
+        if save_img:
+            self.save_as_img(data_type="noise")
 
         return True
 
