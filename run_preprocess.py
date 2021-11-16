@@ -2,7 +2,7 @@ import os
 import warnings
 from preprocessing import preprocess
 
-warnings.filterwarnings("ignore", '.*Chunk*.')
+
 
 
 dirname = os.path.dirname(__file__)

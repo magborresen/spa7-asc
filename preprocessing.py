@@ -6,6 +6,8 @@ import math
 import soundfile as sf
 import librosa
 import warnings
+import logging
+import argparse
 from matplotlib.image import imsave
 from tqdm import tqdm
 from scipy.io import wavfile
@@ -13,9 +15,9 @@ from scipy import signal
 from scipy.spatial.distance import pdist, squareform
 from sklearn.model_selection import train_test_split
 
+warnings.filterwarnings("ignore", '.*Chunk*.')
 warnings.filterwarnings("error")
-
-
+_LOG = logging.getLogger(__name__)
 
 class preprocess():
     def __init__(self, path, chunk_size=10):
@@ -48,7 +50,7 @@ class preprocess():
         self.noise_img = []
 
     def make_training_data(self, method="spectrogram", add_noise=None,
-                            save_img=True, test_size=0.1, vali_size=0.1):
+                            save_img=False, test_size=0.1, vali_size=0.1):
 
         """ Finds all training data and labels classes
 
@@ -70,7 +72,7 @@ class preprocess():
 
         class_labels = []
         collected_data = []
-        print("\nPreprocessing data into " + method + " data\n")
+        _LOG.info(f"Preprocessing data into {method} data")
         pbar = tqdm(self._audio_files)
         for af in pbar:
             # Progress bar, just for show
@@ -139,11 +141,11 @@ class preprocess():
 
         return True
 
-    def make_env_noise(self, method="spectrogram", save_img=True):
+    def make_env_noise(self, method="spectrogram", save_img=False):
 
         collected_noise = []
         class_labels = []
-        print("\nPreprocessing data into " + method + " data\n")
+        _LOG.info(f"Preprocessing data into {method} data")
         pbar = tqdm(self._audio_files)
         for af in pbar:
             # Progress bar, just for show
@@ -274,10 +276,10 @@ class preprocess():
             data = self.noise_img
             classes = self.noise_labels
         else:
-            print("No datatype given, no data will be saved")
+            _LOG.error("No datatype given, no data will be saved")
             return False
 
-        print(f"Saving {data_type} data as images")
+        _LOG.info(f"Saving {data_type} data as images")
         for i in tqdm(range(len(data))):
             filedir = os.path.join(self._dirname, data_type, classes[i])
             if not os.path.exists(filedir):
@@ -428,4 +430,38 @@ class preprocess():
         """
         wgn = np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
         return np.add(x, wgn)
-        
+
+def script_invocation():
+    """Script invocation."""
+    logging.basicConfig(level=logging.INFO,
+                        format='[%(asctime)s.%(msecs)03d] %(levelname)-8s - %(message)s',
+                        datefmt='%H:%M:%S')
+    _LOG.setLevel(logging.DEBUG)
+
+    parser = argparse.ArgumentParser(description="Preprocess and split data into training, validation and test")
+
+    parser.add_argument("-cs", "--chunk_size", help="Splits the data into the given chunk sizes", type=int, default=10)
+    parser.add_argument("-n", "--add_noise", help="choose to add noise to the signal", action="store_true")
+    parser.add_argument("-s", "--save_img", help="Save data as images", action="store_true")
+    parser.add_argument("-ts" "--test_size", help="Split into test size (between 0 and 1)", type=float, default=0.1)
+    parser.add_argument("-vs", "--vali_size", help="Split into validation size (between 0 and 1)", type=float, default=0.1)
+    parser.add_argument("-m", "--method", help="Method to convert signals", type=str, default="spectrogram")
+    parser.add_argument("-e", "--env_noise", help="Create enviromental noise test data", action="store_true")
+
+    args = parser.parse_args()
+
+    dirname = os.path.dirname(__file__)
+    data_path = os.path.join(dirname, "training_data")
+    prep = preprocess(data_path, args.chunk_size)
+
+    if args.save_img:
+        prep.make_training_data(args.method, args.add_noise, args.save_img, args.test_size, args.vali_size)
+    else:
+        prep.make_training_data(method=args.method, add_noise=args.add_noise, test_size=args.test_size, vali_size=args.vali_size)
+
+    if args.env_noise:
+        prep.make_env_noise(method=args.method, save_img=args.save_img)
+
+
+if __name__ == "__main__":
+    script_invocation()
