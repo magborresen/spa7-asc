@@ -285,7 +285,10 @@ class preprocess():
             if not os.path.exists(filedir):
                 os.makedirs(filedir)
             filename = os.path.join(self._dirname, data_type, classes[i], classes[i] + f"{i}.png")
-            imsave(filename, data[i])
+            try:
+                imsave(filename, data[i])
+            except AttributeError:
+                continue
 
     def spectrogram(self, data, nperseg=1024, noverlap=512, window="hann"):
         """ Compute the spectrogram of a given signal
