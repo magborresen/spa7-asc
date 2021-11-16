@@ -440,6 +440,7 @@ def script_invocation():
 
     parser = argparse.ArgumentParser(description="Preprocess and split data into training, validation and test")
 
+    parser.add_argument('-mt', "--make_training", help="Output the training, test and validation data", action="store_true")
     parser.add_argument("-cs", "--chunk_size", help="Splits the data into the given chunk sizes", type=int, default=10)
     parser.add_argument("-n", "--add_noise", help="choose to add noise to the signal", action="store_true")
     parser.add_argument("-s", "--save_img", help="Save data as images", action="store_true")
@@ -454,10 +455,11 @@ def script_invocation():
     data_path = os.path.join(dirname, "training_data")
     prep = preprocess(data_path, args.chunk_size)
 
-    if args.save_img:
-        prep.make_training_data(args.method, args.add_noise, args.save_img, args.test_size, args.vali_size)
-    else:
-        prep.make_training_data(method=args.method, add_noise=args.add_noise, test_size=args.test_size, vali_size=args.vali_size)
+    if args.make_training:
+        if args.save_img:
+            prep.make_training_data(args.method, args.add_noise, args.save_img, args.test_size, args.vali_size)
+        else:
+            prep.make_training_data(method=args.method, add_noise=args.add_noise, test_size=args.test_size, vali_size=args.vali_size)
 
     if args.env_noise:
         prep.make_env_noise(method=args.method, save_img=args.save_img)
