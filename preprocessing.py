@@ -164,7 +164,7 @@ class preprocess():
                 noise = self.get_labeled_noise(data, label_file[0])
 
                 # Create Chunks
-                noise_chunks = self.chunk_file(noise, self._sample_rate, self._chunk_size)
+                noise_chunks = self.chunk_file(noise)
 
                 # Convert data using the given method
                 for chunk in noise_chunks:
