@@ -457,7 +457,7 @@ def script_invocation():
 
     if args.make_training:
         if args.save_img:
-            prep.make_training_data(args.method, args.add_noise, args.save_img, args.test_size, args.vali_size)
+            prep.make_training_data(method=args.method, add_noise=args.add_noise, save_img=args.save_img, test_size=args.test_size, vali_size=args.vali_size)
         else:
             prep.make_training_data(method=args.method, add_noise=args.add_noise, test_size=args.test_size, vali_size=args.vali_size)
 
