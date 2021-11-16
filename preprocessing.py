@@ -444,7 +444,7 @@ def script_invocation():
     parser.add_argument("-cs", "--chunk_size", nargs="?", help="Splits the data into the given chunk sizes", type=int, default=10)
     parser.add_argument("-n", "--add_noise", help="choose to add noise to the signal", action="store_true")
     parser.add_argument("-s", "--save_img", help="Save data as images", action="store_true")
-    parser.add_argument("-ts" "--test_size", nargs="?", help="Split into test size (between 0 and 1)", type=float, default=0.1)
+    parser.add_argument("-ts", "--test_size", nargs="?", help="Split into test size (between 0 and 1)", type=float, default=0.1)
     parser.add_argument("-vs", "--vali_size", nargs="?", help="Split into validation size (between 0 and 1)", type=float, default=0.1)
     parser.add_argument("-m", "--method", help="Method to convert signals", type=str, default="spectrogram")
     parser.add_argument("-e", "--env_noise", help="Create enviromental noise test data", action="store_true")
