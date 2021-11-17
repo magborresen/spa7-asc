@@ -5,12 +5,13 @@ import argparse
 import os
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Activation, Dense, Flatten, BatchNormalization, Conv2D, MaxPool2D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import categorical_crossentropy
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 _LOG = logging.getLogger(__name__)
 
@@ -120,9 +121,10 @@ class CNN:
         model = load_model(model_path)
         predictions = model.predict(x=self._test_batches, verbose=0)
         np.round(predictions)
-        print(predictions)
         cm = confusion_matrix(y_true=self._test_batches.classes, y_pred=np.argmax(predictions, axis=-1))
         print(cm)
+        ConfusionMatrixDisplay.from_predictions(self._test_batches, predictions)
+        plt.savefig(model_name)
 
 
 
