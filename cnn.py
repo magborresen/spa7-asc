@@ -149,8 +149,8 @@ def script_invocation():
 
     if len(args.batch_folders):
         model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2], batches=True)
-    
-    if args.create_model:
+        model.create_CNN_model(args.model_name)
+    elif args.create_model:
         _LOG.info("Creating CNN model")
         model = CNN(batches=True)
         model.create_CNN_model(args.model_name)
