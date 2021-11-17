@@ -137,7 +137,7 @@ def script_invocation():
     parser.add_argument("-f", "--batch_folders",
                         help="Create batches using the given folder names for training, validation and testing",
                         nargs=3, type=str)
-    parser.add_argument("-n" "--model_name",
+    parser.add_argument("-n", "--model_name",
                         help="Name of the model to store to / read from",
                         type=str)
     parser.add_argument("-c", "--create_model", help="Creates a CNN model with the name",
