@@ -103,8 +103,6 @@ class preprocess():
                     class_labels.append(sample_class[0])
                     collected_data.append(data_chunks[i])
 
-
-
         # Split training and validation data
         self.train_data, self.vali_data, self.train_labels, self.vali_labels = train_test_split(collected_data, 
                                                                             class_labels,
@@ -119,6 +117,11 @@ class preprocess():
                                                                             random_state=42)
 
         # Convert test data using selected noise and image model
+        if add_noise:
+            _LOG.info("Adding noise to data")
+        if packet_loss:
+            _LOG.info("Adding packet loss to data")
+
         for d in self.test_data:
             if add_noise == "awgn":
                 y = self.awgn(d)
