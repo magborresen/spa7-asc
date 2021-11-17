@@ -157,7 +157,7 @@ def script_invocation():
         else:
             model= CNN(batches=True)
         model.create_CNN_model(args.model_name, args.epochs)
-        
+
     if args.test_model:
         _LOG.info("Running test data through model")
         if args.batch_folders != None:
