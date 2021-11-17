@@ -123,8 +123,6 @@ class CNN:
         np.round(predictions)
         cm = confusion_matrix(y_true=self._test_batches.classes, y_pred=np.argmax(predictions, axis=-1))
         print(cm)
-        ConfusionMatrixDisplay.from_predictions(self._test_batches, predictions)
-        plt.savefig(model_name)
 
 
 
