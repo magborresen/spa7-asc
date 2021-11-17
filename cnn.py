@@ -5,7 +5,7 @@ import argparse
 import os
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Activation, Dense, Flatten, BatchNormalization, Conv2D, MaxPool2D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import categorical_crossentropy
@@ -116,11 +116,12 @@ class CNN:
         model.save(model_path)
         return model
 
-    def test_CNN(self, model):
+    def test_CNN(self, model_name):
+        model_path = os.path.join(self._dirname, "models", model_name)
+        model = load_model(model_path)
         predictions = model.predict(x=self._test_batches, verbose=0)
         np.round(predictions)
         print(predictions)
-        model_path = os.path.join(self._dirname, "models", model)
         cm = confusion_matrix(y_true=self._test_batches.classes, y_pred=np.argmax(predictions, axis=-1))
         print(cm)
 
@@ -156,9 +157,9 @@ def script_invocation():
         _LOG.info("Creating CNN model")
         model = CNN(batches=True)
         model.create_CNN_model(args.model_name, args.epochs)
-    elif args.test_model:
+    if args.test_model:
         _LOG.info("Running test data through model")
-        model = CNN()
+        model = CNN(batches=True)
         model.test_model(args.model_name)
 
 if __name__ == "__main__":
