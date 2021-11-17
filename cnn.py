@@ -154,7 +154,7 @@ def script_invocation():
         _LOG.info("Creating CNN model")
         model = CNN(batches=True)
         model.create_CNN_model(args.model_name)
-    elif args.test_mode:
+    elif args.test_model:
         _LOG.info("Running test data through model")
         model = CNN()
         model.test_model(args.model_name)
