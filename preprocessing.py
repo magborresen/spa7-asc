@@ -155,7 +155,7 @@ class preprocess():
             # Find associated label files
             dirname = os.path.dirname(os.path.abspath(af))
             label_file = glob.glob(dirname + "/*.txt")
-            
+
             # Get the class
             sample_class = [c for c in self._classes if re.search(r'\b' + c + r'\b', af)]
 
@@ -168,11 +168,12 @@ class preprocess():
 
                 # Convert data using the given method
                 for chunk in noise_chunks:
-                    class_labels.append(sample_class[0])
-                    if method.lower() == "spectrogram":
-                        transform = self.spectrogram(self.noise_data)
-                        self.noise_img.append(transform)
-                    collected_noise.append(chunk)
+                   if len(chunk) != 0:
+                        class_labels.append(sample_class[0])
+                        if method.lower() == "spectrogram":
+                            transform = self.spectrogram(chunk)
+                            self.noise_img.append(transform)
+                        collected_noise.append(chunk)
 
                 self.noise_data = collected_noise
                 self.noise_labels = class_labels
