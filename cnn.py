@@ -159,8 +159,8 @@ def script_invocation():
         model.create_CNN_model(args.model_name, args.epochs)
     if args.test_model:
         _LOG.info("Running test data through model")
-        model = CNN(batches=True)
-        model.test_model(args.model_name)
+        model = CNN()
+        model.test_CNN(args.model_name)
 
 if __name__ == "__main__":
     script_invocation()
