@@ -147,7 +147,7 @@ def script_invocation():
 
     args = parser.parse_args()
 
-    if len(args.batch_folders):
+    if args.batch_folders != None:
         model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2], batches=True)
         model.create_CNN_model(args.model_name)
     elif args.create_model:
