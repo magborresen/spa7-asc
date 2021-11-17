@@ -149,14 +149,14 @@ def script_invocation():
 
     if len(args.batch_folders):
         model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2], batches=True)
-    else:
-        model = CNN()
     
     if args.create_model:
         _LOG.info("Creating CNN model")
+        model = CNN(batches=True)
         model.create_CNN_model(args.model_name)
     elif args.test_mode:
         _LOG.info("Running test data through model")
+        model = CNN()
         model.test_model(args.model_name)
 
 if __name__ == "__main__":
