@@ -154,10 +154,12 @@ training_img/
 training_img
 training/
 training
-vali/
-vali
+validation/
+validation
 test/
 test
+noise
+noise/
 
 .idea/
 .idea
