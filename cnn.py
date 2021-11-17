@@ -96,7 +96,7 @@ class CNN:
         _LOG.info("Batches created...")
         return True
 
-    def create_CNN_model(self, model_name):
+    def create_CNN_model(self, model_name, epochs):
         """
 
         :return:
@@ -111,7 +111,7 @@ class CNN:
         ])
         model.summary()
         model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
-        model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=2, verbose=2)
+        model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=epochs, verbose=2)
         model.save(model_name)
         return model
 
@@ -144,6 +144,7 @@ def script_invocation():
                         action="store_true")
     parser.add_argument("-t", "--test_model", help="Test a model with the given name",
                         action="store_true")
+    parser.add_argument("-e", "--epochs", help="Number of epochs to train", type=int, default=2)
 
     args = parser.parse_args()
 
@@ -153,7 +154,7 @@ def script_invocation():
     elif args.create_model:
         _LOG.info("Creating CNN model")
         model = CNN(batches=True)
-        model.create_CNN_model(args.model_name)
+        model.create_CNN_model(args.model_name, args.epochs)
     elif args.test_model:
         _LOG.info("Running test data through model")
         model = CNN()
