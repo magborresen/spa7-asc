@@ -21,7 +21,7 @@ class CNN:
     Attributes:
 
     """
-    def __init__(self, train_path=None, valid_path=None, test_path=None, batches=False):
+    def __init__(self, train_path=None, valid_path=None, test_path=None):
         self._dirname = os.path.dirname(__file__)
         if train_path == None:
             self._train_path = os.path.join(self._dirname, "training")
@@ -41,8 +41,7 @@ class CNN:
         self._valid_batches = None
         self._test_batches = None
 
-        if batches:
-            self.create_batches(self._train_path, self._vali_path, self._test_path)
+        self.create_batches(self._train_path, self._vali_path, self._test_path)
 
     def create_batches(self, train_path, valid_path, test_path):
         """
@@ -150,16 +149,21 @@ def script_invocation():
 
     args = parser.parse_args()
 
-    if args.batch_folders != None:
-        model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2], batches=True)
-        model.create_CNN_model(args.model_name)
-    elif args.create_model:
+
+    if args.create_model:
         _LOG.info("Creating CNN model")
-        model = CNN(batches=True)
+        if args.batch_folders != None:
+            model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2], batches=True)
+        else:
+            model= CNN(batches=True)
         model.create_CNN_model(args.model_name, args.epochs)
+        
     if args.test_model:
         _LOG.info("Running test data through model")
-        model = CNN()
+        if args.batch_folders != None:
+            model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2], batches=True)
+        else:
+            model = CNN(batches=True)
         model.test_CNN(args.model_name)
 
 if __name__ == "__main__":
