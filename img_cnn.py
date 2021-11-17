@@ -67,7 +67,7 @@ class CNN:
         print(train_batches)
         return train_batches, valid_batches, test_batches
 
-    def Create_CNN_model(self, train_batches, valid_batches, test_batches):
+    def Create_CNN_model(self, train_batches, valid_batches, test_batches, model_name):
         """
 
         :return:
@@ -82,7 +82,8 @@ class CNN:
         ])
         model.summary()
         model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
-        model.fit(x=train_batches, validation_data=valid_batches, epochs=5, verbose=2)
+        model.fit(x=train_batches, validation_data=valid_batches, epochs=2, verbose=2)
+        model.save(model_name)
         return model
 
     def Test_CNN(self, model, test_batches):

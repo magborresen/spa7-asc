@@ -1,7 +1,10 @@
 import os
 import glob
 import re
+from random import random
+from random import randint
 import numpy as np
+from numpy.random import default_rng
 import math
 import soundfile as sf
 import librosa
@@ -50,7 +53,8 @@ class preprocess():
         self.noise_img = []
 
     def make_training_data(self, method="spectrogram", add_noise=None,
-                            save_img=False, test_size=0.1, vali_size=0.1):
+                            save_img=False, test_size=0.1, vali_size=0.1,
+                            packet_loss=False):
 
         """ Finds all training data and labels classes
 
@@ -120,6 +124,8 @@ class preprocess():
                 y = self.awgn(d)
             else:
                 y = d
+            if packet_loss:
+                y = self.packet_loss_sim(y, )
             if method.lower() == "spectrogram":
                 self.test_img.append(self.spectrogram(y))
 
@@ -435,6 +441,84 @@ class preprocess():
         wgn = np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
         return np.add(x, wgn)
 
+    def packet_loss_sim(self, data, loss_type='random', 
+                        loss_distr=0.05, packet_size=0.010):
+        """ simulate packet loss on audio data
+
+        adds noise very close to zero values
+        
+        Args:
+            np_data (array): batch size audio data
+            sample_rate (int): audio file sample rate
+            loss_type (str, optional): type of loss function. 
+                    options: 'random', 'burst'. Defaults to 'random'.
+            loss_distr (float, optional): percentage of audio loss of the file. Defaults to 0.05.
+            packet_size (float, optional): size of transmited packet in sec. Defaults to 0.010.
+
+        Returns:
+            array: modified array
+        """
+        p_sample_size = packet_size*self._sample_rate
+        packet_data = []
+        start_sample = 0
+        bernoulli_fun = default_rng() 
+        # checks if there is information on the chunk file
+ 
+        numPK = int(len(data)/p_sample_size)
+            
+        if loss_type=='random':
+            # randomly lose packets
+            
+            bf = bernoulli_fun.binomial(size=numPK, n=1, p=1-loss_distr) 
+            for pk in range(numPK):
+                stop_sample = start_sample + int(p_sample_size)
+                packet = data[start_sample:stop_sample]
+
+                # multiply zero bernouli samples with noise
+                if bf[pk] == 0:
+                    # multiply with near to zero noise
+                    packet = packet * np.random.uniform(low=1e-06, high=99e-07, size=np.shape(packet))
+                
+                packet_data.append(packet)
+                start_sample = stop_sample
+        
+        if loss_type=='burst':
+            # lose neighboring packets
+            
+            probability_thres = 0.9955
+            
+            totalPKLoss = int(numPK*loss_distr)
+            numPK_counter = 0
+            burstNumLoss = 0
+            for pk in range(numPK):
+                stop_sample = start_sample + int(p_sample_size)
+                packet = data[start_sample:stop_sample]
+                
+                prob = random()
+                
+                # ignores the probab fuctor when loss packets left equal to remaining packets of the file
+                remaining_packets = numPK - pk
+                remaining_loss_packets = totalPKLoss - numPK_counter
+                remaining_bool = remaining_loss_packets == remaining_packets  # Bool
+                if (prob >= probability_thres and numPK_counter < totalPKLoss) or remaining_bool or burstNumLoss > 0:
+                    if burstNumLoss == 0:
+                        # ensures that this will happend once
+                        burstNumLoss = randint(1, remaining_loss_packets)
+                    else:
+                        burstNumLoss = burstNumLoss - 1
+                    # multiply with near to zero noise
+                    packet = packet * np.random.uniform(low=1e-06, high=99e-07, size=np.shape(packet))
+
+                    numPK_counter +=1
+                
+                packet_data.append(packet)
+                start_sample = stop_sample
+                
+        
+        np_data = np.concatenate(packet_data)
+            
+        return np_data
+
 def script_invocation():
     """Script invocation."""
     logging.basicConfig(level=logging.INFO,
@@ -452,6 +536,7 @@ def script_invocation():
     parser.add_argument("-vs", "--vali_size", nargs="?", help="Split into validation size (between 0 and 1)", type=float, default=0.1)
     parser.add_argument("-m", "--method", help="Method to convert signals", type=str, default="spectrogram")
     parser.add_argument("-e", "--env_noise", help="Create enviromental noise test data", action="store_true")
+    parser.add_argument("-p", "--packet_loss", help="Add packet loss to training data", action="store_true")
 
     args = parser.parse_args()
 
@@ -471,3 +556,5 @@ def script_invocation():
 
 if __name__ == "__main__":
     script_invocation()
+    
+    
