@@ -153,17 +153,17 @@ def script_invocation():
     if args.create_model:
         _LOG.info("Creating CNN model")
         if args.batch_folders != None:
-            model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2], batches=True)
+            model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2])
         else:
-            model= CNN(batches=True)
+            model= CNN()
         model.create_CNN_model(args.model_name, args.epochs)
 
     if args.test_model:
         _LOG.info("Running test data through model")
         if args.batch_folders != None:
-            model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2], batches=True)
+            model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2])
         else:
-            model = CNN(batches=True)
+            model = CNN()
         model.test_CNN(args.model_name)
 
 if __name__ == "__main__":
