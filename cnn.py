@@ -112,14 +112,15 @@ class CNN:
         model.summary()
         model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
         model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=epochs, verbose=2)
-        model.save(model_name)
+        model_path = os.path.join(self._dirname, "models", f"{model_name}_{epochs}_epochs")
+        model.save(model_path)
         return model
 
     def test_CNN(self, model):
         predictions = model.predict(x=self._test_batches, verbose=0)
         np.round(predictions)
         print(predictions)
-
+        model_path = os.path.join(self._dirname, "models", model)
         cm = confusion_matrix(y_true=self._test_batches.classes, y_pred=np.argmax(predictions, axis=-1))
         print(cm)
 
