@@ -54,7 +54,7 @@ class preprocess():
 
     def make_training_data(self, method="spectrogram", add_noise=None,
                             save_img=False, test_size=0.1, vali_size=0.1,
-                            packet_loss=False, rm_env_noise=True):
+                            packet_loss=False, rm_env_noise=True, test_only=False):
 
         """ Finds all training data and labels classes
 
@@ -131,7 +131,8 @@ class preprocess():
                 y = self.packet_loss_sim(y, )
             if method.lower() == "spectrogram":
                 self.test_img.append(self.spectrogram(y))
-
+        if test_only:
+            return True
         # Convert training data using the selected method
         for d in self.train_data:
             if method.lower() == "spectrogram":
@@ -541,7 +542,7 @@ def script_invocation():
     parser.add_argument("-e", "--env_noise", help="Create enviromental noise test data", action="store_true")
     parser.add_argument("-p", "--packet_loss", help="Add packet loss to training data", action="store_true")
     parser.add_argument("-rn", "--rm_env_noise", help="Remove environmental noise", action="store_true")
-
+    parser.add_argument("-to", "--test_only", help="Create test data only", action="store_true")
     args = parser.parse_args()
 
     dirname = os.path.dirname(__file__)
@@ -554,7 +555,8 @@ def script_invocation():
                                 save_img=args.save_img,
                                 test_size=args.test_size,
                                 vali_size=args.vali_size,
-                                rm_env_noise=args.rm_env_noise)
+                                rm_env_noise=args.rm_env_noise,
+                                test_only=args.test_only)
 
     if args.env_noise:
         prep.make_env_noise(method=args.method, save_img=args.save_img)
