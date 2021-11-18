@@ -556,6 +556,7 @@ def script_invocation():
                                 save_img=args.save_img,
                                 test_size=args.test_size,
                                 vali_size=args.vali_size,
+                                packet_loss=args.packet_loss,
                                 rm_env_noise=args.rm_env_noise,
                                 test_only=args.test_only)
 
