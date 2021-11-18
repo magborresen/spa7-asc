@@ -54,7 +54,7 @@ class preprocess():
 
     def make_training_data(self, method="spectrogram", add_noise=None,
                             save_img=False, test_size=0.1, vali_size=0.1,
-                            packet_loss=False):
+                            packet_loss=False, rm_env_noise=True):
 
         """ Finds all training data and labels classes
 
@@ -91,7 +91,7 @@ class preprocess():
             sample_class = [c for c in self._classes if re.search(r'\b' + c + r'\b', af)]
 
             data, self._sample_rate = sf.read(af)
-            if len(label_file) > 0:
+            if len(label_file) > 0 and rm_env_noise:
                 data = self.rm_labeled_noise(data, label_file[0])
                 
             # Create Chunks
@@ -540,6 +540,7 @@ def script_invocation():
     parser.add_argument("-m", "--method", help="Method to convert signals", type=str, default="spectrogram")
     parser.add_argument("-e", "--env_noise", help="Create enviromental noise test data", action="store_true")
     parser.add_argument("-p", "--packet_loss", help="Add packet loss to training data", action="store_true")
+    parser.add_argument("-rn", "--rm_env_noise", help="Remove environmental noise", action="store_true")
 
     args = parser.parse_args()
 
@@ -548,10 +549,12 @@ def script_invocation():
     prep = preprocess(data_path, args.chunk_size)
 
     if args.make_training:
-        if args.save_img:
-            prep.make_training_data(method=args.method, add_noise=args.add_noise, save_img=args.save_img, test_size=args.test_size, vali_size=args.vali_size)
-        else:
-            prep.make_training_data(method=args.method, add_noise=args.add_noise, test_size=args.test_size, vali_size=args.vali_size)
+        prep.make_training_data(method=args.method, 
+                                add_noise=args.add_noise,
+                                save_img=args.save_img,
+                                test_size=args.test_size,
+                                vali_size=args.vali_size,
+                                rm_env_noise=args.rm_env_noise)
 
     if args.env_noise:
         prep.make_env_noise(method=args.method, save_img=args.save_img)
