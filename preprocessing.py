@@ -131,7 +131,8 @@ class preprocess():
                 y = self.packet_loss_sim(y, )
             if method.lower() == "spectrogram":
                 self.test_img.append(self.spectrogram(y))
-        if test_only:
+        if test_only and save_img:
+            self.save_as_img(data_type="test")
             return True
         # Convert training data using the selected method
         for d in self.train_data:
