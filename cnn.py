@@ -126,6 +126,7 @@ class CNN:
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=self._class_names)
 
         disp.plot(cmap=plt.cm.Blues)
+        disp_dist = os.path.join(self._dirname, "confusion_output", model_name)
         plt.savefig(model_name)
 
 
