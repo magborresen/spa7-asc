@@ -128,7 +128,7 @@ class preprocess():
             else:
                 y = d
             if packet_loss:
-                y = self.packet_loss_sim(y, )
+                y = self.packet_loss_sim(y)
             if method.lower() == "spectrogram":
                 self.test_img.append(self.spectrogram(y))
         if test_only and save_img:
