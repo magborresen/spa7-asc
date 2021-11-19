@@ -125,6 +125,8 @@ class preprocess():
         for d in self.test_data:
             if add_noise == "awgn":
                 y = self.awgn(d)
+            elif add_noise == "wind":
+                y = self.add_wind_noise(d)
             else:
                 y = d
             if packet_loss:
@@ -445,6 +447,33 @@ class preprocess():
         """
         wgn = np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
         return np.add(x, wgn)
+
+    def add_wind_noise(self, data):
+        """ Additive Wind Noise
+
+        This function adds a looped wind noise to the given signal "data".
+
+        Args:
+            data (array): Input signal
+
+        Returns:
+            Input signal merged with wind noise
+        """
+        # Set path for wind audio
+        wind_path = os.path.join(self._dirname, "noise/wind_audio")
+        # Load wind audio file (Only one right now)
+        wind_normal, sr = sf.read(os.path.join(wind_path, "wind_normal.wav"))
+        # Make sure that the samplerates match
+        if sr != self._sample_rate:
+            wind_normal = signal.resample(wind_normal, self._sample_rate * int(len(wind_normal) / sr))
+        # Select a random starting sample in the wind
+        start = randint(1, len(wind_normal)-1)
+        wind_loop = wind_normal[start:len(wind_normal)]
+        # If input file is longer than wind file, then loop it until it is at least as long as input
+        while len(wind_loop) < len(data):
+            wind_loop = np.hstack([wind_loop,wind_normal])
+        # Merge the input file with the looped wind audio
+        return np.add(data, wind_loop[0:len(data)])
 
     def packet_loss_sim(self, data, loss_type='random', 
                         loss_distr=0.05, packet_size=0.010):
