@@ -582,6 +582,7 @@ def script_invocation():
     parser.add_argument("-e", "--env_noise", help="Create enviromental noise test data", action="store_true")
     parser.add_argument("-p", "--packet_loss", help="Add packet loss to training data", action="store_true")
     parser.add_argument("-rn", "--rm_env_noise", help="Remove environmental noise", action="store_true")
+    parser.add_argument("-sp", "--add_speech", help="Create enviromental noise test data", action="store_true")
 
     args = parser.parse_args()
 
