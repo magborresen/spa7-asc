@@ -446,7 +446,7 @@ class preprocess():
         wgn = np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
         return np.add(x, wgn)
 
-    def packet_loss_sim(self, data, loss_type='random', 
+    def packet_loss_sim(self, data, loss_type='burst', 
                         loss_distr=0.05, packet_size=0.010):
         """ simulate packet loss on audio data
 
