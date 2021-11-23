@@ -4,6 +4,7 @@ import re
 from random import random
 from random import randint
 import numpy as np
+from numpy.core.fromnumeric import size
 from numpy.random import default_rng
 import math
 import soundfile as sf
@@ -37,6 +38,8 @@ class preprocess():
         self._dirname = os.path.dirname(__file__)
         self._classes = ['office', 'outside', 'semi_outside', 'inside', 'inside_vehicle']
         self._audio_files = glob.glob(os.path.join(self._path, '**/*.wav'), recursive=True)
+        noise_path= os.path.join(os.path.split(self._path)[0], "SPA 7 770 noise/speech_noise")
+        self.speech_audio_files = glob.glob(os.path.join(noise_path, '**/*.wav'), recursive=True)
         self._sample_rate = None
         self._chunk_size = chunk_size
         self.train_data = None
@@ -51,10 +54,13 @@ class preprocess():
         self.noise_data = None
         self.noise_labels = None
         self.noise_img = []
+        self.speech_data = []
 
     def make_training_data(self, method="spectrogram", add_noise=None,
-                            save_img=False, test_size=0.1, vali_size=0.1,
-                            packet_loss=False, rm_env_noise=True, test_only=False):
+                            save_img=True, test_size=0.1, vali_size=0.1,
+                            packet_loss=False, rm_env_noise=False, test_only=False,
+                            add_speech=False):
+
 
         """ Finds all training data and labels classes
 
@@ -121,7 +127,10 @@ class preprocess():
             _LOG.info("Adding noise to data")
         if packet_loss:
             _LOG.info("Adding packet loss to data")
-
+        if add_speech:
+            _LOG.info("Adding speech noise to data")
+            self.prepare_speech_data()
+        
         for d in self.test_data:
             if add_noise == "awgn":
                 y = self.awgn(d)
@@ -129,6 +138,8 @@ class preprocess():
                 y = self.add_wind_noise(d)
             else:
                 y = d
+            if add_speech:
+                self.add_speech_noise(y)
             if packet_loss:
                 y = self.packet_loss_sim(y)
             if method.lower() == "spectrogram":
@@ -448,6 +459,37 @@ class preprocess():
         wgn = np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
         return np.add(x, wgn)
 
+    def prepare_speech_data(self):
+        pbar = tqdm(self.speech_audio_files)
+        for af in pbar:
+            speech_f_data, speech_sample_rate = sf.read(af)
+            if speech_sample_rate != self._sample_rate:
+                new_sr = self._sample_rate*(int(len(speech_f_data)/speech_sample_rate))
+                speech_f_data = signal.resample(speech_f_data, new_sr, domain='time')
+            self.speech_data.append(speech_f_data)
+
+    def add_speech_noise(self, data, num_of_speech_files = 1):
+        """ Adds random speech signal to the data
+
+        Args:
+            data (array): Input signal
+            num_of_speech_files (int, optional): the number of added speech files to signal. Defaults to 1.
+
+        Returns:
+            The signal with additive speech noise
+        """
+        for iteration in range(num_of_speech_files):
+            rand_speech_pick = randint(0, len(self.speech_data)-1)
+            speech_samples_length = len(self.speech_data[rand_speech_pick])
+            rand_possition_pick = randint(0, len(data)-speech_samples_length-1)
+            speech_file = self.speech_data[rand_speech_pick]
+            if np.ndim(speech_file) != np.ndim(data):
+                speech_file = np.ravel(speech_file)
+            data[rand_possition_pick:rand_possition_pick+speech_samples_length] = np.add(
+                    data[rand_possition_pick:rand_possition_pick+speech_samples_length], 
+                    speech_file)
+        return data
+    
     def add_wind_noise(self, data):
         """ Additive Wind Noise
 
@@ -572,6 +614,7 @@ def script_invocation():
     parser.add_argument("-e", "--env_noise", help="Create enviromental noise test data", action="store_true")
     parser.add_argument("-p", "--packet_loss", help="Add packet loss to training data", action="store_true")
     parser.add_argument("-rn", "--rm_env_noise", help="Remove environmental noise", action="store_true")
+    parser.add_argument("-sp", "--add_speech", help="Create enviromental noise test data", action="store_true")
     parser.add_argument("-to", "--test_only", help="Create test data only", action="store_true")
     args = parser.parse_args()
 
