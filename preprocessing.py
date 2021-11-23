@@ -58,8 +58,9 @@ class preprocess():
 
     def make_training_data(self, method="spectrogram", add_noise=None,
                             save_img=True, test_size=0.1, vali_size=0.1,
-                            packet_loss=False, rm_env_noise=False,
-                            add_speech=True):
+                            packet_loss=False, rm_env_noise=False, test_only=False,
+                            add_speech=False):
+
 
         """ Finds all training data and labels classes
 
@@ -133,15 +134,19 @@ class preprocess():
         for d in self.test_data:
             if add_noise == "awgn":
                 y = self.awgn(d)
+            elif add_noise == "wind":
+                y = self.add_wind_noise(d)
             else:
                 y = d
             if add_speech:
                 self.add_speech_noise(y)
             if packet_loss:
-                y = self.packet_loss_sim(y, )
+                y = self.packet_loss_sim(y)
             if method.lower() == "spectrogram":
                 self.test_img.append(self.spectrogram(y))
-
+        if test_only and save_img:
+            self.save_as_img(data_type="test")
+            return True
         # Convert training data using the selected method
         for d in self.train_data:
             if method.lower() == "spectrogram":
@@ -485,6 +490,33 @@ class preprocess():
                     speech_file)
         return data
     
+    def add_wind_noise(self, data):
+        """ Additive Wind Noise
+
+        This function adds a looped wind noise to the given signal "data".
+
+        Args:
+            data (array): Input signal
+
+        Returns:
+            Input signal merged with wind noise
+        """
+        # Set path for wind audio
+        wind_path = os.path.join(self._dirname, "noise/wind_audio")
+        # Load wind audio file (Only one right now)
+        wind_normal, sr = sf.read(os.path.join(wind_path, "wind_normal.wav"))
+        # Make sure that the samplerates match
+        if sr != self._sample_rate:
+            wind_normal = signal.resample(wind_normal, self._sample_rate * int(len(wind_normal) / sr))
+        # Select a random starting sample in the wind
+        start = randint(1, len(wind_normal)-1)
+        wind_loop = wind_normal[start:len(wind_normal)]
+        # If input file is longer than wind file, then loop it until it is at least as long as input
+        while len(wind_loop) < len(data):
+            wind_loop = np.hstack([wind_loop,wind_normal])
+        # Merge the input file with the looped wind audio
+        return np.add(data, wind_loop[0:len(data)])
+
     def packet_loss_sim(self, data, loss_type='random', 
                         loss_distr=0.05, packet_size=0.010):
         """ simulate packet loss on audio data
@@ -583,7 +615,7 @@ def script_invocation():
     parser.add_argument("-p", "--packet_loss", help="Add packet loss to training data", action="store_true")
     parser.add_argument("-rn", "--rm_env_noise", help="Remove environmental noise", action="store_true")
     parser.add_argument("-sp", "--add_speech", help="Create enviromental noise test data", action="store_true")
-
+    parser.add_argument("-to", "--test_only", help="Create test data only", action="store_true")
     args = parser.parse_args()
 
     dirname = os.path.dirname(__file__)
@@ -596,7 +628,9 @@ def script_invocation():
                                 save_img=args.save_img,
                                 test_size=args.test_size,
                                 vali_size=args.vali_size,
-                                rm_env_noise=args.rm_env_noise)
+                                packet_loss=args.packet_loss,
+                                rm_env_noise=args.rm_env_noise,
+                                test_only=args.test_only)
 
     if args.env_noise:
         prep.make_env_noise(method=args.method, save_img=args.save_img)
