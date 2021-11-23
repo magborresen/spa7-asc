@@ -607,7 +607,7 @@ def script_invocation():
 
     parser.add_argument('-mt', "--make_training", help="Output the training, test and validation data", action="store_true")
     parser.add_argument("-cs", "--chunk_size", nargs="?", help="Splits the data into the given chunk sizes", type=int, default=10)
-    parser.add_argument("-n", "--add_noise", help="choose to add noise to the signal", action="store_true")
+    parser.add_argument("-awgn", "--add_awgn", help="Add AWGB to the test data", action="store_true")
     parser.add_argument("-s", "--save_img", help="Save data as images", action="store_true")
     parser.add_argument("-ts", "--test_size", nargs="?", help="Split into test size (between 0 and 1)", type=float, default=0.1)
     parser.add_argument("-vs", "--vali_size", nargs="?", help="Split into validation size (between 0 and 1)", type=float, default=0.1)
@@ -626,7 +626,7 @@ def script_invocation():
 
     if args.make_training:
         prep.make_training_data(method=args.method, 
-                                add_noise=args.add_noise,
+                                add_awgn=args.add_awgn,
                                 save_img=args.save_img,
                                 test_size=args.test_size,
                                 vali_size=args.vali_size,

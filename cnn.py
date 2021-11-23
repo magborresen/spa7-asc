@@ -11,7 +11,7 @@ from tensorflow.keras.layers import Activation, Dense, Flatten, BatchNormalizati
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import categorical_crossentropy
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score
 
 _LOG = logging.getLogger(__name__)
 
@@ -122,9 +122,10 @@ class CNN:
         predictions = model.predict(x=self._test_batches, verbose=0)
         np.round(predictions)
         cm = confusion_matrix(y_true=self._test_batches.classes, y_pred=np.argmax(predictions, axis=-1))
+        accu = accuracy_score(self._test_batches.classes, np.argmax(predictions, axis=-1))
         print(cm)
+        _LOG.info(f"Model accuracy on test data {accu}")
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=self._class_names)
-
         disp.plot(cmap=plt.cm.Blues)
         disp_dist = os.path.join(self._dirname, "confusion_output", model_name)
         plt.savefig(model_name)
