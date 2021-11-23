@@ -38,8 +38,8 @@ class preprocess():
         self._dirname = os.path.dirname(__file__)
         self._classes = ['office', 'outside', 'semi_outside', 'inside', 'inside_vehicle']
         self._audio_files = glob.glob(os.path.join(self._path, '**/*.wav'), recursive=True)
-        noise_path= os.path.join(os.path.split(self._path)[0], "SPA 7 770 noise/speech_noise")
-        self.speech_audio_files = glob.glob(os.path.join(noise_path, '**/*.wav'), recursive=True)
+        self._speech_files = os.path.join(self._dirname, "noise", "speech_noise")
+        self._speech_audio_files = glob.glob(os.path.join(self._speech_files, '**/*.wav'), recursive=True)
         self._sample_rate = None
         self._chunk_size = chunk_size
         self.train_data = None
@@ -135,9 +135,9 @@ class preprocess():
         
         for d in self.test_data:
             y = d
-            if add_awgn == "awgn":
+            if add_awgn:
                 y = self.awgn(y)
-            if add_wind == "wind":
+            if add_wind:
                 y = self.add_wind_noise(y)
             if add_speech:
                 y = self.add_speech_noise(y)
@@ -461,7 +461,7 @@ class preprocess():
         return np.add(x, wgn)
 
     def prepare_speech_data(self):
-        pbar = tqdm(self.speech_audio_files)
+        pbar = tqdm(self._speech_audio_files)
         for af in pbar:
             speech_f_data, speech_sample_rate = sf.read(af)
             if speech_sample_rate != self._sample_rate:
