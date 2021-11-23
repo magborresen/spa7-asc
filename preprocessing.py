@@ -56,10 +56,10 @@ class preprocess():
         self.noise_img = []
         self.speech_data = []
 
-    def make_training_data(self, method="spectrogram", add_noise=None,
+    def make_training_data(self, method="spectrogram", add_awgn=False,
                             save_img=True, test_size=0.1, vali_size=0.1,
                             packet_loss=False, rm_env_noise=False, test_only=False,
-                            add_speech=False):
+                            add_speech=False, add_wind=False):
 
 
         """ Finds all training data and labels classes
@@ -123,23 +123,24 @@ class preprocess():
                                                                             random_state=42)
 
         # Convert test data using selected noise and image model
-        if add_noise:
-            _LOG.info("Adding noise to data")
+        if add_awgn:
+            _LOG.info("Adding AWGN to data")
         if packet_loss:
             _LOG.info("Adding packet loss to data")
         if add_speech:
             _LOG.info("Adding speech noise to data")
             self.prepare_speech_data()
+        if add_wind:
+            _LOG.info("Adding wind noise to data")
         
         for d in self.test_data:
-            if add_noise == "awgn":
-                y = self.awgn(d)
-            elif add_noise == "wind":
-                y = self.add_wind_noise(d)
-            else:
-                y = d
+            y = d
+            if add_awgn == "awgn":
+                y = self.awgn(y)
+            if add_wind == "wind":
+                y = self.add_wind_noise(y)
             if add_speech:
-                self.add_speech_noise(y)
+                y = self.add_speech_noise(y)
             if packet_loss:
                 y = self.packet_loss_sim(y)
             if method.lower() == "spectrogram":
@@ -456,7 +457,7 @@ class preprocess():
         Returns:
             The signal with awgn
         """
-        wgn = np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
+        wgn = np.square(np.mean(x)) * np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
         return np.add(x, wgn)
 
     def prepare_speech_data(self):
@@ -478,7 +479,7 @@ class preprocess():
         Returns:
             The signal with additive speech noise
         """
-        for iteration in range(num_of_speech_files):
+        for i in range(num_of_speech_files):
             rand_speech_pick = randint(0, len(self.speech_data)-1)
             speech_samples_length = len(self.speech_data[rand_speech_pick])
             rand_possition_pick = randint(0, len(data)-speech_samples_length-1)
@@ -614,8 +615,9 @@ def script_invocation():
     parser.add_argument("-e", "--env_noise", help="Create enviromental noise test data", action="store_true")
     parser.add_argument("-p", "--packet_loss", help="Add packet loss to training data", action="store_true")
     parser.add_argument("-rn", "--rm_env_noise", help="Remove environmental noise", action="store_true")
-    parser.add_argument("-sp", "--add_speech", help="Create enviromental noise test data", action="store_true")
+    parser.add_argument("-as", "--add_speech", help="Create enviromental noise test data", action="store_true")
     parser.add_argument("-to", "--test_only", help="Create test data only", action="store_true")
+    parser.add_argument("-aw", "--add_wind", help="Add wind noise to the test data", action="store_true")
     args = parser.parse_args()
 
     dirname = os.path.dirname(__file__)
@@ -630,7 +632,9 @@ def script_invocation():
                                 vali_size=args.vali_size,
                                 packet_loss=args.packet_loss,
                                 rm_env_noise=args.rm_env_noise,
-                                test_only=args.test_only)
+                                test_only=args.test_only,
+                                add_speech=args.add_speech,
+                                add_wind=args.add_wind)
 
     if args.env_noise:
         prep.make_env_noise(method=args.method, save_img=args.save_img)
