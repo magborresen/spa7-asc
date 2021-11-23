@@ -135,9 +135,9 @@ class preprocess():
         
         for d in self.test_data:
             y = d
-            if add_awgn == "awgn":
+            if add_awgn:
                 y = self.awgn(y)
-            if add_wind == "wind":
+            if add_wind:
                 y = self.add_wind_noise(y)
             if add_speech:
                 y = self.add_speech_noise(y)
