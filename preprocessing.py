@@ -457,7 +457,7 @@ class preprocess():
         Returns:
             The signal with awgn
         """
-        wgn = np.square(np.mean(x)) * np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
+        wgn = np.square(np.mean(x)) *  np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
         return np.add(x, wgn)
 
     def prepare_speech_data(self):
