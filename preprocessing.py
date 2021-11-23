@@ -58,7 +58,7 @@ class preprocess():
 
     def make_training_data(self, method="spectrogram", add_awgn=False,
                             save_img=True, test_size=0.1, vali_size=0.1,
-                            packet_loss=False, rm_env_noise=False, test_only=False,
+                            packet_loss=None, rm_env_noise=False, test_only=False,
                             add_speech=False, add_wind=False):
 
 
@@ -125,7 +125,7 @@ class preprocess():
         # Convert test data using selected noise and image model
         if add_awgn:
             _LOG.info("Adding AWGN to data")
-        if packet_loss:
+        if packet_loss != None:
             _LOG.info("Adding packet loss to data")
         if add_speech:
             _LOG.info("Adding speech noise to data")
@@ -141,8 +141,8 @@ class preprocess():
                 y = self.add_wind_noise(y)
             if add_speech:
                 y = self.add_speech_noise(y)
-            if packet_loss:
-                y = self.packet_loss_sim(y)
+            if packet_loss != None:
+                y = self.packet_loss_sim(y, loss_type=packet_loss)
             if method.lower() == "spectrogram":
                 self.test_img.append(self.spectrogram(y))
         if test_only and save_img:
@@ -613,7 +613,7 @@ def script_invocation():
     parser.add_argument("-vs", "--vali_size", nargs="?", help="Split into validation size (between 0 and 1)", type=float, default=0.1)
     parser.add_argument("-m", "--method", help="Method to convert signals", type=str, default="spectrogram")
     parser.add_argument("-e", "--env_noise", help="Create enviromental noise test data", action="store_true")
-    parser.add_argument("-p", "--packet_loss", help="Add packet loss to training data", action="store_true")
+    parser.add_argument("-p", "--packet_loss", help="Add packet loss to training data", type=str, default=None)
     parser.add_argument("-rn", "--rm_env_noise", help="Remove environmental noise", action="store_true")
     parser.add_argument("-as", "--add_speech", help="Create enviromental noise test data", action="store_true")
     parser.add_argument("-to", "--test_only", help="Create test data only", action="store_true")
