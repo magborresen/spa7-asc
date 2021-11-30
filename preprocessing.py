@@ -60,8 +60,6 @@ class preprocess():
                             save_img=True, test_size=0.1, vali_size=0.1,
                             packet_loss=None, rm_env_noise=False, test_only=False,
                             add_speech=False, add_wind=False):
-
-
         """ Finds all training data and labels classes
 
         The function finds all training data and labels the classes.
