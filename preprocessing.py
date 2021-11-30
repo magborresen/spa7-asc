@@ -86,8 +86,12 @@ class preprocess():
         pbar = tqdm(self._audio_files)
         for af in pbar:
             # Progress bar, just for show
-            processing_name = af.split("/")
-            pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
+            if os.name == 'posix':
+                processing_name = af.split("/")
+                pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
+            else:
+                processing_name = af.split("\\")
+                pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
 
             # Find associated label files
             dirname = os.path.dirname(os.path.abspath(af))
@@ -325,7 +329,7 @@ class preprocess():
             data (array): Sampled data
             Fs (int): Sample rate
             nfft (int): fft bin size
-            noverlap (int): numer of samples to overlap
+            noverlap (int): number of samples to overlap
             window (String): Window function to use
 
         Returns:
