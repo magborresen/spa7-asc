@@ -132,7 +132,7 @@ class preprocess():
             self.prepare_speech_data()
         if add_wind:
             _LOG.info("Adding wind noise to data")
-        
+
         for d in self.test_data:
             y = d
             if add_awgn:
@@ -457,7 +457,8 @@ class preprocess():
         Returns:
             The signal with awgn
         """
-        wgn = np.square(np.mean(x)) *  np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
+
+        wgn =  np.square(np.mean(x)) *  np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
         return np.add(x, wgn)
 
     def prepare_speech_data(self):
@@ -503,7 +504,7 @@ class preprocess():
             Input signal merged with wind noise
         """
         # Set path for wind audio
-        wind_path = os.path.join(self._dirname, "noise/wind_audio")
+        wind_path = os.path.join(self._dirname, "noise/wind_noise")
         # Load wind audio file (Only one right now)
         wind_normal, sr = sf.read(os.path.join(wind_path, "wind_normal.wav"))
         # Make sure that the samplerates match

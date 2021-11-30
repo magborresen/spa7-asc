@@ -111,7 +111,7 @@ class CNN:
         ])
         model.summary()
         model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
-        model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=epochs, verbose=2)
+        model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=epochs, verbose=1)
         model_path = os.path.join(self._dirname, "models", f"{model_name}_{epochs}_epochs")
         model.save(model_path)
         return model
@@ -121,7 +121,7 @@ class CNN:
         model = load_model(model_path)
         predictions = model.predict(x=self._test_batches, verbose=0)
         np.round(predictions)
-        cm = confusion_matrix(y_true=self._test_batches.classes, y_pred=np.argmax(predictions, axis=-1))
+        cm = confusion_matrix(y_true=self._test_batches.classes, y_pred=np.argmax(predictions, axis=-1), normalize='true')
         accu = accuracy_score(self._test_batches.classes, np.argmax(predictions, axis=-1))
         print(cm)
         _LOG.info(f"Model accuracy on test data {accu}")
