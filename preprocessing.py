@@ -134,7 +134,9 @@ class preprocess():
         if add_wind:
             _LOG.info("Adding wind noise to data")
 
-        for d in self.test_data:
+        pbar = tqdm(self.test_data)
+        for d in pbar:
+            pbar.set_description("Converting to spectrograms")
             y = d
             if add_awgn:
                 y = self.awgn(y)
