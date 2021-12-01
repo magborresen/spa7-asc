@@ -132,6 +132,7 @@ class preprocess():
             self.prepare_speech_data()
         if add_wind:
             _LOG.info("Adding wind noise to data")
+            self.prepare_wind_data()
 
         for d in self.test_data:
             y = d
@@ -491,7 +492,26 @@ class preprocess():
                     data[rand_possition_pick:rand_possition_pick+speech_samples_length], 
                     speech_file)
         return data
-    
+
+    def prepare_wind_data(self):
+        """ Prepare Wind Noise
+
+        This function prepare wind audio before adding it to a signal.
+
+        Args: None
+
+        Returns:
+            Wind noise as array
+        """
+        # Set path for wind audio
+        wind_path = os.path.join(self._dirname, "noise/wind_noise")
+        # Load wind audio file (Only one right now)
+        wind_normal, sr = sf.read(os.path.join(wind_path, "wind_normal.wav"))
+        # Make sure that the samplerates match
+        if sr != self._sample_rate:
+            wind_normal = signal.resample(wind_normal, self._sample_rate * int(len(wind_normal) / sr))
+        self.wind_data = wind_normal
+
     def add_wind_noise(self, data):
         """ Additive Wind Noise
 
@@ -503,19 +523,12 @@ class preprocess():
         Returns:
             Input signal merged with wind noise
         """
-        # Set path for wind audio
-        wind_path = os.path.join(self._dirname, "noise/wind_noise")
-        # Load wind audio file (Only one right now)
-        wind_normal, sr = sf.read(os.path.join(wind_path, "wind_normal.wav"))
-        # Make sure that the samplerates match
-        if sr != self._sample_rate:
-            wind_normal = signal.resample(wind_normal, self._sample_rate * int(len(wind_normal) / sr))
         # Select a random starting sample in the wind
-        start = randint(1, len(wind_normal)-1)
-        wind_loop = wind_normal[start:len(wind_normal)]
+        start = randint(1, len(self.wind_data)-1)
+        wind_loop = self.wind_data[start:len(self.wind_data)]
         # If input file is longer than wind file, then loop it until it is at least as long as input
         while len(wind_loop) < len(data):
-            wind_loop = np.hstack([wind_loop,wind_normal])
+            wind_loop = np.hstack([wind_loop,self.wind_data])
         # Merge the input file with the looped wind audio
         return np.add(data, wind_loop[0:len(data)])
 
