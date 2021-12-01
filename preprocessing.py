@@ -3,6 +3,7 @@ import glob
 import re
 from random import random
 from random import randint
+from random import choices
 import numpy as np
 from numpy.random import default_rng
 import math
@@ -15,6 +16,7 @@ from scipy.io import wavfile
 from scipy import signal
 from scipy.spatial.distance import pdist, squareform
 from sklearn.model_selection import train_test_split
+from librosa import power_to_db
 
 warnings.filterwarnings("error")
 
@@ -215,6 +217,7 @@ class preprocess():
             ch1f, ch1t, ch1Sxx = signal.spectrogram(data[:,1], sample_rate,
                                             nperseg=nperseg, noverlap=noverlap, window=window)
 
+            #TODO implement value replacement for 2 dimention arrays
             try:
                 return [10*np.log10(ch0Sxx), 10*np.log10(ch1Sxx)]
             except RuntimeWarning:
@@ -226,7 +229,16 @@ class preprocess():
         # If 1 channel
         ch0f, ch0t, ch0Sxx = signal.spectrogram(data, sample_rate,
                                             nperseg=nperseg, noverlap=noverlap, window=window)
-
+        
+        
+        # finds minimum value non-zero
+        minval = np.min(ch0Sxx[np.nonzero(ch0Sxx)])
+        
+        # replaces all zero values with minval
+        for i, vertical_line in enumerate(ch0Sxx):
+            zeros_possition  = np.where(vertical_line == 0.0)
+            ch0Sxx[i][zeros_possition] = minval
+        
         return 10*np.log10(ch0Sxx)
 
     def mel_spectrogram(self, data, sample_rate, nfft=1024, startframe=0):
@@ -355,64 +367,64 @@ class preprocess():
         p_sample_size = packet_size*sample_rate
         packet_data = []
         start_sample = 0
-        bernoulli_fun = default_rng() 
-        # checks if there is indormation on the chunk file
-        if np.size(np_data) != 0: 
-            if np_data.ndim > 1:
-                numPK = int(np.shape(np_data)[0]/p_sample_size)
+        # checks if there is information on the chunk file
+ 
+        numPK = int(len(data)/p_sample_size)
+            
+        if loss_type=='random':
+            # randomly lose packets
+            
+            bernoulli_fun = default_rng() 
+            # generate bernouli samples
+            state_function = bernoulli_fun.binomial(size=numPK, n=1, p=1-loss_distr) 
+        
+        if loss_type=='burst':
+            # lose neighboring packets
+            
+            totalPKLoss = int(numPK*loss_distr)
+            
+            cases = ["full_burst", "dual_burst"]
+            cases_weight = [75, 25] # probability weights
+            # randomly chose between full or dual burst
+            number_of_bursts = choices(cases, weights = cases_weight, k = 1)
+            
+            if number_of_bursts == "full_burst":
+                burst_poss = [randint(1, numPK)]
+                packet_loss = [totalPKLoss]
             else:
-                numPK = int(len(np_data)/p_sample_size)
+                burst_poss = [randint(1, numPK), randint(1, numPK)]
+                percentage_per_burst = np.random.uniform() # returns values [0, 1]
+                first_packet_loss = int(totalPKLoss*percentage_per_burst)
+                second_packet_loss = totalPKLoss - first_packet_loss
+                packet_loss = [first_packet_loss, second_packet_loss]
             
-            if loss_type=='random':
-                # randomly lose packets
-                
-                bf = bernoulli_fun.binomial(size=numPK, n=1, p=1-loss_distr) 
-                print(bf)
-                for pk in range(numPK):
-                    stop_sample = start_sample + int(p_sample_size)
-                    packet = np_data[start_sample:stop_sample]
+            # place the packet loss into list
+            state_function = np.ones(numPK)
+            for index, loss in enumerate(burst_poss):
+                start_point = loss - int(packet_loss[index]/2)
+                # ensures a valid lower edge possition
+                if start_point < 0:
+                    start_point = int(packet_loss[index]/2)
+                stop_point = start_point + packet_loss[index]
+                # ensures a valid upper edge possition
+                if stop_point > numPK:
+                    stop_point = numPK
+                    start_point = stop_point - packet_loss[index]
+                # sets the selected range 0
+                state_function[start_point:stop_point] = 0
+            
+        # calculates packets and eliminate zero values
+        for pk in range(numPK):
+            stop_sample = start_sample + int(p_sample_size)
+            packet = data[start_sample:stop_sample]
 
-                    # multiply zero bernouli samples with noise
-                    if bf[pk] == 0:
-                        # multiply with near to zero noise
-                        packet = packet * np.random.uniform(low=1e-06, high=99e-07, size=np.shape(packet))
-                    
-                    packet_data.append(packet)
-                    start_sample = stop_sample
-            
-            if loss_type=='burst':
-                # lose neighboring packets
+            # multiply zero value samples with noise
+            if state_function[pk] == 0:
+                # multiply with near to zero noise
+                packet = np.zeros_like(packet)# * 1e-10
                 
-                probability_thres = 0.9955
-                
-                totalPKLoss = int(numPK*loss_distr)
-                numPK_counter = 0
-                burstNumLoss = 0
-                for pk in range(numPK):
-                    stop_sample = start_sample + int(p_sample_size)
-                    packet = np_data[start_sample:stop_sample]
-                    
-                    prob = random()
-                    
-                    # ignores the probab fuctor when loss packets left equal to remaining packets of the file
-                    remaining_packets = numPK - pk
-                    remaining_loss_packets = totalPKLoss - numPK_counter
-                    remaining_bool = remaining_loss_packets == remaining_packets  # Bool
-                    if (prob >= probability_thres and numPK_counter < totalPKLoss) or remaining_bool or burstNumLoss > 0:
-                        if burstNumLoss == 0:
-                            # ensures that this will happend once
-                            burstNumLoss = randint(1, remaining_loss_packets)
-                        else:
-                            burstNumLoss = burstNumLoss - 1
-                        # multiply with near to zero noise
-                        packet = packet * np.random.uniform(low=1e-06, high=99e-07, size=np.shape(packet))
-
-                        numPK_counter +=1
-                    
-                    packet_data.append(packet)
-                    start_sample = stop_sample
-                    
-            
-            np_data = np.concatenate(packet_data)
-            
+            packet_data.append(packet)
+            start_sample = stop_sample
+        
+        np_data = np.concatenate(packet_data, axis=None)
         return np_data
