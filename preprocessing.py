@@ -86,7 +86,10 @@ class preprocess():
         pbar = tqdm(self._audio_files)
         for af in pbar:
             # Progress bar, just for show
-            processing_name = af.split("/")
+            if os.name == "posix":
+                processing_name = af.split("/")
+            else:
+                processing_name = af.split("\\")
             pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
 
             # Find associated label files
@@ -164,6 +167,92 @@ class preprocess():
             self.save_as_img(data_type="validation")
             self.save_as_img(data_type="test")
 
+        return True
+
+    def make_test_data(self, method="spectrogram", add_awgn=None, 
+                       packet_loss=None, add_speech=None, add_wind=None, folder_name=None):
+        """ Finds all training data and labels classes
+
+        The function finds all training data and labels the classes.
+        It will also preprocess the data into the given transform.
+        The function will return arrays if save_img is False.
+        Otherwise it will save the data as images
+
+        Args:
+            method (String): Preprocessing technique to use
+            chunk_size (int): Chunk size to split each file into
+            test_size (float): Size of test data given in percentage between 0 and 1
+            vali_size (float): Size of validation data given in percentage between 0 and 1
+
+        Returns:
+            collected_data (list): List of preprocessed collected data
+            class_labels (list): List of class labels
+        """
+        if not folder_name:
+            _LOG.error("No folder was given, exiting...")
+            return
+        else:
+            _LOG.info(f"Loading test data from {folder_name}")
+        
+        class_labels = []
+        collected_data = []
+        _LOG.info(f"Preprocessing data into {method} data")
+        data_folder = os.path.join(self._dirname, folder_name)
+        test_files = glob.glob(os.path.join(data_folder, '**/*.wav'), recursive=True)
+        pbar = tqdm(test_files)
+        for af in pbar:
+            # Progress bar, just for show
+            if os.name == "posix":
+                processing_name = af.split("/")
+            else:
+                processing_name = af.split("\\")
+            pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
+
+            # Find associated label files
+            dirname = os.path.dirname(os.path.abspath(af))
+            label_file = glob.glob(dirname + "/*.txt")
+            
+            # Get the class
+            sample_class = [c for c in self._classes if re.search(r'\b' + c + r'\b', af)]
+
+            data, self._sample_rate = sf.read(af)
+                
+            # Create Chunks
+            data_chunks = self.chunk_file(data)
+
+            # Create matching labels for the chunks and sort out empty chunks
+            for i in range(len(data_chunks)):
+                if len(data_chunks[i]) != 0:
+                    class_labels.append(sample_class[0])
+                    collected_data.append(data_chunks[i])
+
+            self.test_labels = class_labels
+
+        # Convert test data using selected noise and image model
+        if add_awgn:
+            _LOG.info("Adding AWGN to data")
+        if packet_loss != None:
+            _LOG.info("Adding packet loss to data")
+        if add_speech:
+            _LOG.info("Adding speech noise to data")
+            self.prepare_speech_data()
+        if add_wind:
+            _LOG.info("Adding wind noise to data")
+
+        for d in collected_data:
+            y = d
+            if add_awgn:
+                y = self.awgn(y)
+            if add_wind:
+                y = self.add_wind_noise(y)
+            if add_speech:
+                y = self.add_speech_noise(y)
+            if packet_loss != None:
+                y = self.packet_loss_sim(y, loss_type=packet_loss)
+            if method.lower() == "spectrogram":
+                self.test_img.append(self.spectrogram(y))
+
+        self.save_as_img(data_type="test")
         return True
 
     def make_env_noise(self, method="spectrogram", save_img=False):
@@ -619,6 +708,7 @@ def script_invocation():
     parser.add_argument("-as", "--add_speech", help="Create enviromental noise test data", action="store_true")
     parser.add_argument("-to", "--test_only", help="Create test data only", action="store_true")
     parser.add_argument("-aw", "--add_wind", help="Add wind noise to the test data", action="store_true")
+    parser.add_argument("-tf", "--test_folder", help="Name of folder containing test data", type=str, default=None)
     args = parser.parse_args()
 
     dirname = os.path.dirname(__file__)
@@ -639,6 +729,14 @@ def script_invocation():
 
     if args.env_noise:
         prep.make_env_noise(method=args.method, save_img=args.save_img)
+
+    if args.test_only and args.test_folder:
+        prep.make_test_data(method=args.method, 
+                            add_awgn=args.add_awgn,
+                            packet_loss=args.packet_loss,
+                            add_speech=args.add_speech,
+                            add_wind=args.add_wind,
+                            folder_name=args.test_folder)
 
 
 if __name__ == "__main__":
