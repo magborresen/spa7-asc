@@ -134,12 +134,13 @@ class preprocess():
             _LOG.info("Adding wind noise to data")
             self.prepare_wind_data()
 
-        for d in self.test_data:
+        #for d in self.test_data:
+        for d, l in zip(self.test_data, self.test_labels):
             y = d
             if add_awgn:
                 y = self.awgn(y)
             if add_wind:
-                y = self.add_wind_noise(y)
+                y = self.add_wind_noise(y, l)
             if add_speech:
                 y = self.add_speech_noise(y)
             if packet_loss != None:
@@ -512,7 +513,7 @@ class preprocess():
             wind_normal = signal.resample(wind_normal, self._sample_rate * int(len(wind_normal) / sr))
         self.wind_data = wind_normal
 
-    def add_wind_noise(self, data):
+    def add_wind_noise(self, data, label):
         """ Additive Wind Noise
 
         This function adds a looped wind noise to the given signal "data".
@@ -523,6 +524,8 @@ class preprocess():
         Returns:
             Input signal merged with wind noise
         """
+        if label == 'inside' or 'office':
+            return data
         # Select a random starting sample in the wind
         start = randint(1, len(self.wind_data)-1)
         wind_loop = self.wind_data[start:len(self.wind_data)]
