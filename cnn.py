@@ -6,7 +6,6 @@ import os
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-plt.rcParams.update({'font.size': 16})
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Activation, Dense, Flatten, BatchNormalization, Conv2D, MaxPool2D
 from tensorflow.keras.optimizers import Adam
