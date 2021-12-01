@@ -150,11 +150,12 @@ class preprocess():
                 y = self.packet_loss_sim(y, loss_type=packet_loss)
             if method.lower() == "spectrogram":
                 self.test_img.append(self.spectrogram(y))
-        if test_only and save_img:
+        if save_img:
             self.save_as_img(data_type="test")
+            del self.test_data
+            del self.test_img
+        if test_only:
             return True
-
-        del self.test_data
 
         # Convert training data using the selected method
         pbar = tqdm(self.train_data)
@@ -162,6 +163,12 @@ class preprocess():
             pbar.set_description("Converting training data to Spectrograms")
             if method.lower() == "spectrogram":
                 self.train_img.append(self.spectrogram(d))
+        
+        if save_img:
+            self.save_as_img(data_type="training")
+            del self.training_img
+            del self.training_data
+
         del self.train_data
         # Convert validation data using the selected method
         pbar = tqdm(self.vali_data)
@@ -169,12 +176,11 @@ class preprocess():
             pbar.set_description("Converting validation data into Spectrograms")
             if method.lower() == "spectrogram":
                 self.vali_img.append(self.spectrogram(d))
-        del self.vali_data
-        # Save as images of selected
         if save_img:
-            self.save_as_img(data_type="training")
             self.save_as_img(data_type="validation")
-            self.save_as_img(data_type="test")
+
+        del self.vali_data
+        del self.vali_img
 
         return True
 
