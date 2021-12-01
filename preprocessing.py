@@ -12,6 +12,7 @@ import librosa
 import warnings
 import logging
 import argparse
+import matplotlib.pyplot as plt
 from matplotlib.image import imsave
 from tqdm import tqdm
 from scipy.io import wavfile
@@ -313,9 +314,23 @@ class preprocess():
             filename = os.path.join(self._dirname, data_type, classes[i], classes[i] + f"{i}.png")
             try:
                 imsave(filename, data[i])
+                #if data[i].all!=None:
+                #    plt.plot(data[i])
+                #    plt.xlabel("time")
+                #    plt.ylabel("frequency")
+                #    plt.savefig(filename)
             except AttributeError:
                 continue
 
+    def show_spectogram(t, f, Sxx):
+        fig, ax = plt.subplots() 
+        c = ax.pcolormesh(t, f, Sxx, shading='auto')
+        fig.gca().invert_yaxis()
+        ax.set_xlabel("Time [s]")
+        ax.set_ylabel("Frequency [Hz]")
+        plt.colorbar(c)
+        plt.show()
+    
     def spectrogram(self, data, nperseg=1024, noverlap=512, window="hann"):
         """ Compute the spectrogram of a given signal
 
@@ -334,7 +349,6 @@ class preprocess():
 
         f, t, Sxx = signal.spectrogram(data, self._sample_rate,
                                         nperseg=nperseg, noverlap=noverlap, window=window)
-
         try:
             return 10*np.log10(Sxx)
         except RuntimeWarning:
@@ -518,7 +532,7 @@ class preprocess():
         # Merge the input file with the looped wind audio
         return np.add(data, wind_loop[0:len(data)])
 
-    def packet_loss_sim(self, data, loss_type='random', 
+    def packet_loss_sim(self, data, loss_type='burst', 
                         loss_distr=0.05, packet_size=0.010):
         """ simulate packet loss on audio data
 
