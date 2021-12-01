@@ -136,7 +136,7 @@ class preprocess():
 
         pbar = tqdm(self.test_data)
         for d in pbar:
-            pbar.set_description("Converting to spectrograms")
+            pbar.set_description("Converting test data to Spectrograms")
             y = d
             if add_awgn:
                 y = self.awgn(y)
@@ -152,12 +152,16 @@ class preprocess():
             self.save_as_img(data_type="test")
             return True
         # Convert training data using the selected method
-        for d in self.train_data:
+        pbar = tqdm(self.train_data)
+        for d in pbar:
+            pbar.set_description("Converting training data to Spectrograms")
             if method.lower() == "spectrogram":
                 self.train_img.append(self.spectrogram(d))
 
         # Convert validation data using the selected method
-        for d in self.vali_data:
+        pbar = tqdm(self.vali_data)
+        for d in pbar:
+            pbar.set_description("Converting validation data into Spectrograms")
             if method.lower() == "spectrogram":
                 self.vali_img.append(self.spectrogram(d))
 
@@ -239,7 +243,9 @@ class preprocess():
         if add_wind:
             _LOG.info("Adding wind noise to data")
 
-        for d in collected_data:
+        pbar = tqdm(collected_data)
+        for d in pbar:
+            pbar.set_description("Converting into Spectrograms")
             y = d
             if add_awgn:
                 y = self.awgn(y)
