@@ -152,8 +152,10 @@ class preprocess():
                 self.test_img.append(self.spectrogram(y))
         if save_img:
             self.save_as_img(data_type="test")
-            del self.test_data
-            del self.test_img
+
+        del self.test_data
+        del self.test_img
+
         if test_only:
             return True
 
@@ -166,10 +168,10 @@ class preprocess():
         
         if save_img:
             self.save_as_img(data_type="training")
-            del self.training_img
-            del self.training_data
 
+        del self.train_img
         del self.train_data
+
         # Convert validation data using the selected method
         pbar = tqdm(self.vali_data)
         for d in pbar:
