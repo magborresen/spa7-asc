@@ -122,6 +122,8 @@ class preprocess():
                                                                             self.train_labels,
                                                                             test_size=test_size,
                                                                             random_state=42)
+        del collected_data
+        del class_labels
 
         # Convert test data using selected noise and image model
         if add_awgn:
@@ -151,20 +153,23 @@ class preprocess():
         if test_only and save_img:
             self.save_as_img(data_type="test")
             return True
+
+        del self.test_data
+
         # Convert training data using the selected method
         pbar = tqdm(self.train_data)
         for d in pbar:
             pbar.set_description("Converting training data to Spectrograms")
             if method.lower() == "spectrogram":
                 self.train_img.append(self.spectrogram(d))
-
+        del self.train_data
         # Convert validation data using the selected method
         pbar = tqdm(self.vali_data)
         for d in pbar:
             pbar.set_description("Converting validation data into Spectrograms")
             if method.lower() == "spectrogram":
                 self.vali_img.append(self.spectrogram(d))
-
+        del self.vali_data
         # Save as images of selected
         if save_img:
             self.save_as_img(data_type="training")
