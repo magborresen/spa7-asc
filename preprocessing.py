@@ -134,7 +134,6 @@ class preprocess():
             _LOG.info("Adding wind noise to data")
             self.prepare_wind_data()
 
-        #for d in self.test_data:
         for d, l in zip(self.test_data, self.test_labels):
             y = d
             if add_awgn:
