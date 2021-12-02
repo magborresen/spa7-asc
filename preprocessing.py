@@ -3,6 +3,7 @@ import glob
 import re
 from random import random
 from random import randint
+from random import choices
 import numpy as np
 from numpy.core.fromnumeric import size
 from numpy.random import default_rng
@@ -18,6 +19,7 @@ from scipy.io import wavfile
 from scipy import signal
 from scipy.spatial.distance import pdist, squareform
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 
 warnings.filterwarnings("ignore", '.*Chunk*.')
 warnings.filterwarnings("error")
@@ -38,8 +40,8 @@ class preprocess():
         self._dirname = os.path.dirname(__file__)
         self._classes = ['office', 'outside', 'semi_outside', 'inside', 'inside_vehicle']
         self._audio_files = glob.glob(os.path.join(self._path, '**/*.wav'), recursive=True)
-        noise_path= os.path.join(os.path.split(self._path)[0], "SPA 7 770 noise/speech_noise")
-        self.speech_audio_files = glob.glob(os.path.join(noise_path, '**/*.wav'), recursive=True)
+        self._speech_files = os.path.join(self._dirname, "noise", "speech_noise")
+        self._speech_audio_files = glob.glob(os.path.join(self._speech_files, '**/*.wav'), recursive=True)
         self._sample_rate = None
         self._chunk_size = chunk_size
         self.train_data = None
@@ -56,12 +58,10 @@ class preprocess():
         self.noise_img = []
         self.speech_data = []
 
-    def make_training_data(self, method="spectrogram", add_noise=None,
+    def make_training_data(self, method="spectrogram", add_awgn=False,
                             save_img=True, test_size=0.1, vali_size=0.1,
-                            packet_loss=False, rm_env_noise=False, test_only=False,
-                            add_speech=False):
-
-
+                            packet_loss=None, rm_env_noise=False, test_only=False,
+                            add_speech=False, add_wind=False):
         """ Finds all training data and labels classes
 
         The function finds all training data and labels the classes.
@@ -86,8 +86,12 @@ class preprocess():
         pbar = tqdm(self._audio_files)
         for af in pbar:
             # Progress bar, just for show
-            processing_name = af.split("/")
-            pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
+            if os.name == 'posix':
+                processing_name = af.split("/")
+                pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
+            else:
+                processing_name = af.split("\\")
+                pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
 
             # Find associated label files
             dirname = os.path.dirname(os.path.abspath(af))
@@ -123,25 +127,26 @@ class preprocess():
                                                                             random_state=42)
 
         # Convert test data using selected noise and image model
-        if add_noise:
-            _LOG.info("Adding noise to data")
-        if packet_loss:
+        if add_awgn:
+            _LOG.info("Adding AWGN to data")
+        if packet_loss != None:
             _LOG.info("Adding packet loss to data")
         if add_speech:
             _LOG.info("Adding speech noise to data")
             self.prepare_speech_data()
-        
+        if add_wind:
+            _LOG.info("Adding wind noise to data")
+
         for d in self.test_data:
-            if add_noise == "awgn":
-                y = self.awgn(d)
-            elif add_noise == "wind":
-                y = self.add_wind_noise(d)
-            else:
-                y = d
+            y = d
+            if add_awgn:
+                y = self.awgn(y)
+            if add_wind:
+                y = self.add_wind_noise(y)
             if add_speech:
-                self.add_speech_noise(y)
-            if packet_loss:
-                y = self.packet_loss_sim(y)
+                y = self.add_speech_noise(y)
+            if packet_loss != None:
+                y = self.packet_loss_sim(y, loss_type=packet_loss)
             if method.lower() == "spectrogram":
                 self.test_img.append(self.spectrogram(y))
         if test_only and save_img:
@@ -324,7 +329,7 @@ class preprocess():
             data (array): Sampled data
             Fs (int): Sample rate
             nfft (int): fft bin size
-            noverlap (int): numer of samples to overlap
+            noverlap (int): number of samples to overlap
             window (String): Window function to use
 
         Returns:
@@ -333,12 +338,28 @@ class preprocess():
 
         f, t, Sxx = signal.spectrogram(data, self._sample_rate,
                                         nperseg=nperseg, noverlap=noverlap, window=window)
-
-        try:
-            return 10*np.log10(Sxx)
-        except RuntimeWarning:
-            pass
-
+        
+        # finds minimum value non-zero
+        minval = np.min(Sxx[np.nonzero(Sxx)])
+        
+        # replaces all zero values with minval
+        for i, vertical_line in enumerate(Sxx):
+            zeros_possition  = np.where(vertical_line == 0.0)
+            Sxx[i][zeros_possition] = minval
+        
+        # uncomment to plot spectogram
+        if True:
+            fig, ax = plt.subplots() 
+            z = 10*np.log10(Sxx)
+            c = ax.pcolormesh(t, f, z, shading='auto', cmap='viridis') #, vmin = z_min, vmax = z_max) #shading='auto', cmap='viridis'
+            fig.gca().invert_yaxis()
+            ax.set_xlabel("Time [s]")
+            ax.set_ylabel("Frequency [Hz]")
+            plt.colorbar(c, format="%+2.f dB") # plt.colorbar(c)
+            plt.show()
+        
+        return 10*np.log10(Sxx)
+    
     def mel_spectrogram(self, data, sample_rate, nfft=1024, startframe=0):
         """ Compute the mel spectrogram of a given signal
 
@@ -456,11 +477,12 @@ class preprocess():
         Returns:
             The signal with awgn
         """
-        wgn = np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
+
+        wgn =  np.square(np.mean(x)) *  np.random.normal(loc=0.0, scale=1.0, size=x.shape[0])
         return np.add(x, wgn)
 
     def prepare_speech_data(self):
-        pbar = tqdm(self.speech_audio_files)
+        pbar = tqdm(self._speech_audio_files)
         for af in pbar:
             speech_f_data, speech_sample_rate = sf.read(af)
             if speech_sample_rate != self._sample_rate:
@@ -478,7 +500,7 @@ class preprocess():
         Returns:
             The signal with additive speech noise
         """
-        for iteration in range(num_of_speech_files):
+        for i in range(num_of_speech_files):
             rand_speech_pick = randint(0, len(self.speech_data)-1)
             speech_samples_length = len(self.speech_data[rand_speech_pick])
             rand_possition_pick = randint(0, len(data)-speech_samples_length-1)
@@ -502,7 +524,7 @@ class preprocess():
             Input signal merged with wind noise
         """
         # Set path for wind audio
-        wind_path = os.path.join(self._dirname, "noise/wind_audio")
+        wind_path = os.path.join(self._dirname, "noise/wind_noise")
         # Load wind audio file (Only one right now)
         wind_normal, sr = sf.read(os.path.join(wind_path, "wind_normal.wav"))
         # Make sure that the samplerates match
@@ -517,11 +539,13 @@ class preprocess():
         # Merge the input file with the looped wind audio
         return np.add(data, wind_loop[0:len(data)])
 
-    def packet_loss_sim(self, data, loss_type='random', 
+    def packet_loss_sim(self, np_data, loss_type='random', 
                         loss_distr=0.05, packet_size=0.010):
         """ simulate packet loss on audio data
 
-        adds noise very close to zero values
+        makes to kinds of different packet loss type.
+        Random : the percentage of loss is distributed with bernoulli function
+        Burst  : the percentage of loss is either one collection of neightbouring packets or two of them
         
         Args:
             np_data (array): batch size audio data
@@ -537,58 +561,64 @@ class preprocess():
         p_sample_size = packet_size*self._sample_rate
         packet_data = []
         start_sample = 0
-        bernoulli_fun = default_rng() 
         # checks if there is information on the chunk file
  
-        numPK = int(len(data)/p_sample_size)
+        numPK = int(len(np_data)/p_sample_size)
             
         if loss_type=='random':
             # randomly lose packets
             
-            bf = bernoulli_fun.binomial(size=numPK, n=1, p=1-loss_distr) 
-            for pk in range(numPK):
-                stop_sample = start_sample + int(p_sample_size)
-                packet = data[start_sample:stop_sample]
-
-                # multiply zero bernouli samples with noise
-                if bf[pk] == 0:
-                    # multiply with near to zero noise
-                    packet = packet * np.random.uniform(low=1e-06, high=99e-07, size=np.shape(packet))
-                
-                packet_data.append(packet)
-                start_sample = stop_sample
+            bernoulli_fun = default_rng() 
+            # generate bernouli samples
+            state_function = bernoulli_fun.binomial(size=numPK, n=1, p=1-loss_distr) 
         
         if loss_type=='burst':
             # lose neighboring packets
             
-            probability_thres = 0.9955
-            
             totalPKLoss = int(numPK*loss_distr)
-            numPK_counter = 0
-            burstNumLoss = 0
-            for pk in range(numPK):
-                stop_sample = start_sample + int(p_sample_size)
-                packet = data[start_sample:stop_sample]
-                
-                prob = random()
-                
-                # ignores the probab fuctor when loss packets left equal to remaining packets of the file
-                remaining_packets = numPK - pk
-                remaining_loss_packets = totalPKLoss - numPK_counter
-                remaining_bool = remaining_loss_packets == remaining_packets  # Bool
-                if (prob >= probability_thres and numPK_counter < totalPKLoss) or remaining_bool or burstNumLoss > 0:
-                    if burstNumLoss == 0:
-                        # ensures that this will happend once
-                        burstNumLoss = randint(1, remaining_loss_packets)
-                    else:
-                        burstNumLoss = burstNumLoss - 1
-                    # multiply with near to zero noise
-                    packet = packet * np.random.uniform(low=1e-06, high=99e-07, size=np.shape(packet))
+            
+            cases = ["full_burst", "dual_burst"]
+            cases_weight = [75, 25] # probability weights
+            # randomly chose between full or dual burst
+            number_of_bursts = choices(cases, weights = cases_weight, k = 1)
+            
+            if number_of_bursts == "full_burst":
+                burst_poss = [randint(1, numPK)]
+                packet_loss = [totalPKLoss]
+            else:
+                burst_poss = [randint(1, numPK), randint(1, numPK)]
+                percentage_per_burst = np.random.uniform() # returns values [0, 1]
+                first_packet_loss = int(totalPKLoss*percentage_per_burst)
+                second_packet_loss = totalPKLoss - first_packet_loss
+                packet_loss = [first_packet_loss, second_packet_loss]
+            
+            # place the packet loss into list
+            state_function = np.ones(numPK)
+            for index, loss in enumerate(burst_poss):
+                start_point = loss - int(packet_loss[index]/2)
+                # ensures a valid lower edge possition
+                if start_point < 0:
+                    start_point = int(packet_loss[index]/2)
+                stop_point = start_point + packet_loss[index]
+                # ensures a valid upper edge possition
+                if stop_point > numPK:
+                    stop_point = numPK
+                    start_point = stop_point - packet_loss[index]
+                # sets the selected range 0
+                state_function[start_point:stop_point] = 0
+            
+        # calculates packets and eliminate zero values
+        for pk in range(numPK):
+            stop_sample = start_sample + int(p_sample_size)
+            packet = np_data[start_sample:stop_sample]
 
-                    numPK_counter +=1
+            # multiply zero value samples with noise
+            if state_function[pk] == 0:
+                # multiply with near to zero noise
+                packet = np.zeros_like(packet)# * 1e-10
                 
-                packet_data.append(packet)
-                start_sample = stop_sample
+            packet_data.append(packet)
+            start_sample = stop_sample
                 
         
         np_data = np.concatenate(packet_data)
@@ -606,16 +636,17 @@ def script_invocation():
 
     parser.add_argument('-mt', "--make_training", help="Output the training, test and validation data", action="store_true")
     parser.add_argument("-cs", "--chunk_size", nargs="?", help="Splits the data into the given chunk sizes", type=int, default=10)
-    parser.add_argument("-n", "--add_noise", help="choose to add noise to the signal", action="store_true")
+    parser.add_argument("-awgn", "--add_awgn", help="Add AWGB to the test data", action="store_true")
     parser.add_argument("-s", "--save_img", help="Save data as images", action="store_true")
     parser.add_argument("-ts", "--test_size", nargs="?", help="Split into test size (between 0 and 1)", type=float, default=0.1)
     parser.add_argument("-vs", "--vali_size", nargs="?", help="Split into validation size (between 0 and 1)", type=float, default=0.1)
     parser.add_argument("-m", "--method", help="Method to convert signals", type=str, default="spectrogram")
     parser.add_argument("-e", "--env_noise", help="Create enviromental noise test data", action="store_true")
-    parser.add_argument("-p", "--packet_loss", help="Add packet loss to training data", action="store_true")
+    parser.add_argument("-p", "--packet_loss", help="Add packet loss to training data", type=str, default=None)
     parser.add_argument("-rn", "--rm_env_noise", help="Remove environmental noise", action="store_true")
-    parser.add_argument("-sp", "--add_speech", help="Create enviromental noise test data", action="store_true")
+    parser.add_argument("-as", "--add_speech", help="Create enviromental noise test data", action="store_true")
     parser.add_argument("-to", "--test_only", help="Create test data only", action="store_true")
+    parser.add_argument("-aw", "--add_wind", help="Add wind noise to the test data", action="store_true")
     args = parser.parse_args()
 
     dirname = os.path.dirname(__file__)
@@ -624,13 +655,15 @@ def script_invocation():
 
     if args.make_training:
         prep.make_training_data(method=args.method, 
-                                add_noise=args.add_noise,
+                                add_awgn=args.add_awgn,
                                 save_img=args.save_img,
                                 test_size=args.test_size,
                                 vali_size=args.vali_size,
                                 packet_loss=args.packet_loss,
                                 rm_env_noise=args.rm_env_noise,
-                                test_only=args.test_only)
+                                test_only=args.test_only,
+                                add_speech=args.add_speech,
+                                add_wind=args.add_wind)
 
     if args.env_noise:
         prep.make_env_noise(method=args.method, save_img=args.save_img)
@@ -638,5 +671,4 @@ def script_invocation():
 
 if __name__ == "__main__":
     script_invocation()
-    
     
