@@ -19,7 +19,11 @@ from scipy.io import wavfile
 from scipy import signal
 from scipy.spatial.distance import pdist, squareform
 from sklearn.model_selection import train_test_split
+<<<<<<< Updated upstream
 import matplotlib.pyplot as plt
+=======
+import matplotlib as plt
+>>>>>>> Stashed changes
 
 warnings.filterwarnings("ignore", '.*Chunk*.')
 warnings.filterwarnings("error")
@@ -620,8 +624,15 @@ class preprocess():
             start_sample = stop_sample
                 
         
+<<<<<<< Updated upstream
         np_data = np.concatenate(packet_data)
             
+=======
+        return np.concatenate(packet_data, axis=None)
+    try:
+        return np.concatenate(packet_data, axis=None)
+    except RuntimeWarning:
+>>>>>>> Stashed changes
         return np_data
 
 def script_invocation():
