@@ -171,3 +171,6 @@ confusion_output/
 confusion_output
 
 *.png
+
+online_test/
+online_test
