@@ -37,12 +37,10 @@ class preprocess():
         """
 
         self._path = path
-        #self._dirname = os.path.dirname(__file__)
-        self._dirname = os.path.split(path)[0] # delete it afterwards
+        self._dirname = os.path.dirname(__file__)
         self._classes = ['office', 'outside', 'semi_outside', 'inside', 'inside_vehicle']
         self._audio_files = glob.glob(os.path.join(self._path, '**/*.wav'), recursive=True)
-        #self._speech_files = os.path.join(self._dirname, "noise", "speech_noise")
-        self._speech_files = os.path.join(self._dirname, "SPA 7 770 noise", "speech_noise") #remove it afterwards
+        self._speech_files = os.path.join(self._dirname, "noise", "speech_noise")
         self._speech_audio_files = glob.glob(os.path.join(self._speech_files, '**/*.wav'), recursive=True)
         self._sample_rate = None
         self._chunk_size = chunk_size
