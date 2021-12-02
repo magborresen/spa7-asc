@@ -5,7 +5,8 @@ from preprocessing import preprocess
 
 
 
-dirname = os.path.dirname(__file__)
+#dirname = os.path.dirname(__file__)
+dirname = "C:/Users/mike_/Desktop/KampitakisCode/spa test/"
 training_folder = os.path.join(dirname, "training_data/")
 
 # Check if training folder/data already exists
@@ -16,5 +17,5 @@ if not os.path.exists(training_img_dir):
     # "C:/Users/mabo/Aalborg Universitet/P7 - SPA7 - Dokumenter/Project/SPA 7 770 database/"
     # "C:/Users/mabo/Aalborg Universitet/P7 - SPA7 - Dokumenter/Project/SPA 7 770 database/"
     # "C:/Users/mike_/Desktop/KampitakisCode/spa test/training_data"
-    prep.make_training_data(add_speech=True)
+    prep.make_training_data(packet_loss="burst")
     #prep.make_env_noise()
