@@ -319,8 +319,7 @@ class preprocess():
                 imsave(filename, data[i])
             except AttributeError:
                 continue
-    
-    
+
     def spectrogram(self, data, nperseg=1024, noverlap=512, window="hann"):
         """ Compute the spectrogram of a given signal
 
