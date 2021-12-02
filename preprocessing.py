@@ -37,10 +37,12 @@ class preprocess():
         """
 
         self._path = path
-        self._dirname = os.path.dirname(__file__)
+        #self._dirname = os.path.dirname(__file__)
+        self._dirname = os.path.split(path)[0] # delete it afterwards
         self._classes = ['office', 'outside', 'semi_outside', 'inside', 'inside_vehicle']
         self._audio_files = glob.glob(os.path.join(self._path, '**/*.wav'), recursive=True)
-        self._speech_files = os.path.join(self._dirname, "noise", "speech_noise")
+        #self._speech_files = os.path.join(self._dirname, "noise", "speech_noise")
+        self._speech_files = os.path.join(self._dirname, "SPA 7 770 noise", "speech_noise") #remove it afterwards
         self._speech_audio_files = glob.glob(os.path.join(self._speech_files, '**/*.wav'), recursive=True)
         self._sample_rate = None
         self._chunk_size = chunk_size
@@ -348,15 +350,15 @@ class preprocess():
             Sxx[i][zeros_possition] = minval
         
         # uncomment to plot spectogram
-        if True:
-            fig, ax = plt.subplots() 
-            z = 10*np.log10(Sxx)
-            c = ax.pcolormesh(t, f, z, shading='auto', cmap='viridis') #, vmin = z_min, vmax = z_max) #shading='auto', cmap='viridis'
-            fig.gca().invert_yaxis()
-            ax.set_xlabel("Time [s]")
-            ax.set_ylabel("Frequency [Hz]")
-            plt.colorbar(c, format="%+2.f dB") # plt.colorbar(c)
-            plt.show()
+        #if True:
+        #    fig, ax = plt.subplots() 
+        #    z = 10*np.log10(Sxx)
+        #    c = ax.pcolormesh(t, f, z, shading='auto', cmap='viridis') #, vmin = z_min, vmax = z_max) #shading='auto', cmap='viridis'
+        #    fig.gca().invert_yaxis()
+        #    ax.set_xlabel("Time [s]")
+        #    ax.set_ylabel("Frequency [Hz]")
+        #    plt.colorbar(c, format="%+2.f dB") # plt.colorbar(c)
+        #    plt.show()
         
         return 10*np.log10(Sxx)
     
@@ -503,12 +505,24 @@ class preprocess():
         for i in range(num_of_speech_files):
             rand_speech_pick = randint(0, len(self.speech_data)-1)
             speech_samples_length = len(self.speech_data[rand_speech_pick])
-            rand_possition_pick = randint(0, len(data)-speech_samples_length-1)
             speech_file = self.speech_data[rand_speech_pick]
+            data_len = len(data)
+            
+            # for 10 sec chunk
+            if data_len > speech_samples_length:
+                rand_possition_pick = randint(0, data_len-speech_samples_length-1)
+                possiton_end = speech_samples_length
+            
+            # for 1 sec chunk
+            else:
+                rand_possition_pick = 0
+                possiton_end = data_len
+                speech_file = speech_file[rand_possition_pick:possiton_end]
+            
             if np.ndim(speech_file) != np.ndim(data):
                 speech_file = np.ravel(speech_file)
-            data[rand_possition_pick:rand_possition_pick+speech_samples_length] = np.add(
-                    data[rand_possition_pick:rand_possition_pick+speech_samples_length], 
+            data[rand_possition_pick:rand_possition_pick+possiton_end] = np.add(
+                    data[rand_possition_pick:rand_possition_pick+possiton_end], 
                     speech_file)
         return data
     
