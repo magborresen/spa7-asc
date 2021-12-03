@@ -170,4 +170,7 @@ models
 confusion_output/
 confusion_output
 
-.png
+*.png
+
+online_test/
+online_test

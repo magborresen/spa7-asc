@@ -11,7 +11,7 @@ from tensorflow.keras.layers import Activation, Dense, Flatten, BatchNormalizati
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import categorical_crossentropy
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score
 
 _LOG = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class CNN:
     Attributes:
 
     """
-    def __init__(self, train_path=None, valid_path=None, test_path=None):
+    def __init__(self, train_path=None, valid_path=None, test_path=None, chunk_size=10):
         self._dirname = os.path.dirname(__file__)
         if train_path == None:
             self._train_path = os.path.join(self._dirname, "training")
@@ -41,35 +41,13 @@ class CNN:
         self._train_batches = None
         self._valid_batches = None
         self._test_batches = None
+        self._input_shape = (513, 860) if chunk_size == 10 else (513, 85)
 
         self.create_batches(self._train_path, self._vali_path, self._test_path)
 
     def create_batches(self, train_path, valid_path, test_path):
         """
         Creates training batches for the image processing CNN.
-        File structure for 2 classes:
-        CNN_data
-            train
-                class1
-                    image1
-                    ...
-                class2
-                    image1
-                    ...
-            validation
-                class1
-                    image1
-                    ...
-                class2
-                    image1
-                    ...
-            test
-                class1
-                    image1
-                    ...
-                class2
-                    image1
-                    ...
 
         :param train_path: str, the directory path to the training data
         :param valid_path: str, the directory path to the validation data
@@ -78,18 +56,17 @@ class CNN:
         :return: None
         """
 
-
         train_path = self._train_path
         valid_path = self._vali_path
         test_path = self._test_path
 
         _LOG.info("Creating batches...")
         self._train_batches = ImageDataGenerator(preprocessing_function=tf.keras.applications.vgg16.preprocess_input) \
-            .flow_from_directory(directory=train_path, target_size=(513, 860), classes=self._class_names, batch_size=10)
+            .flow_from_directory(directory=train_path, target_size=self._input_shape, classes=self._class_names, batch_size=10)
         self._valid_batches = ImageDataGenerator(preprocessing_function=tf.keras.applications.vgg16.preprocess_input) \
-            .flow_from_directory(directory=valid_path, target_size=(513, 860), classes=self._class_names, batch_size=5)
+            .flow_from_directory(directory=valid_path, target_size=self._input_shape, classes=self._class_names, batch_size=5)
         self._test_batches = ImageDataGenerator(preprocessing_function=tf.keras.applications.vgg16.preprocess_input) \
-            .flow_from_directory(directory=test_path, target_size=(513, 860), classes=self._class_names, batch_size=2,
+            .flow_from_directory(directory=test_path, target_size=self._input_shape, classes=self._class_names, batch_size=2,
                                  shuffle=False)
         #print(train_batches)
         #return train_batches, valid_batches, test_batches
@@ -102,7 +79,7 @@ class CNN:
         :return:
         """
         model = Sequential([
-            Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding='same', input_shape=(513, 860, 3)),
+            Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding='same', input_shape=(*self._input_shape, 3)),
             MaxPool2D(pool_size=(2, 2), strides=2),
             Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding='same'),
             MaxPool2D(pool_size=(2, 2), strides=2),
@@ -111,7 +88,7 @@ class CNN:
         ])
         model.summary()
         model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
-        model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=epochs, verbose=2)
+        model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=epochs, verbose=1)
         model_path = os.path.join(self._dirname, "models", f"{model_name}_{epochs}_epochs")
         model.save(model_path)
         return model
@@ -121,13 +98,17 @@ class CNN:
         model = load_model(model_path)
         predictions = model.predict(x=self._test_batches, verbose=0)
         np.round(predictions)
-        cm = confusion_matrix(y_true=self._test_batches.classes, y_pred=np.argmax(predictions, axis=-1))
+        cm = confusion_matrix(y_true=self._test_batches.classes, y_pred=np.argmax(predictions, axis=-1), normalize='true')
+        accu = accuracy_score(self._test_batches.classes, np.argmax(predictions, axis=-1))
         print(cm)
+        _LOG.info(f"Model accuracy on test data {accu}")
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=self._class_names)
-
         disp.plot(cmap=plt.cm.Blues)
-        disp_dist = os.path.join(self._dirname, "confusion_output", model_name)
-        plt.savefig(model_name)
+        disp_dist = os.path.join(self._dirname, model_name)
+        plt.tight_layout()
+        plt.xlabel("Predicted Label")
+        plt.ylabel("True Label")
+        plt.savefig(disp_dist)
 
 
 
@@ -151,14 +132,14 @@ def script_invocation():
     parser.add_argument("-t", "--test_model", help="Test a model with the given name",
                         action="store_true")
     parser.add_argument("-e", "--epochs", help="Number of epochs to train", type=int, default=2)
-
+    parser.add_argument("-cs", "--chunk_size", help="Chunk size defining input shape", type=int, default=10)
     args = parser.parse_args()
 
 
     if args.create_model:
         _LOG.info("Creating CNN model")
         if args.batch_folders != None:
-            model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2])
+            model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2], args.chunk_size)
         else:
             model= CNN()
         model.create_CNN_model(args.model_name, args.epochs)
@@ -166,7 +147,7 @@ def script_invocation():
     if args.test_model:
         _LOG.info("Running test data through model")
         if args.batch_folders != None:
-            model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2])
+            model = CNN(args.batch_folders[0], args.batch_folders[1], args.batch_folders[2], args.chunk_size)
         else:
             model = CNN()
         model.test_CNN(args.model_name)
