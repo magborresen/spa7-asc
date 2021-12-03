@@ -148,6 +148,7 @@ class preprocess():
                 y = self.awgn(y)
             if add_wind:
                 y = self.add_wind_noise(y, l)
+
             if add_speech:
                 y = self.add_speech_noise(y)
             if packet_loss != None:
@@ -458,7 +459,9 @@ class preprocess():
         # uncomment to plot spectogram
         #if True:
         #    fig, ax = plt.subplots() 
+
         #    c = ax.pcolormesh(t, f, 10*np.log10(Sxx), shading='gouraud', cmap='viridis') #shading='auto', cmap='viridis'
+
         #    fig.gca().invert_yaxis()
         #    ax.set_xlabel("Time [s]")
         #    ax.set_ylabel("Frequency [Hz]")
@@ -610,12 +613,24 @@ class preprocess():
         for i in range(num_of_speech_files):
             rand_speech_pick = randint(0, len(self.speech_data)-1)
             speech_samples_length = len(self.speech_data[rand_speech_pick])
-            rand_possition_pick = randint(0, len(data)-speech_samples_length-1)
             speech_file = self.speech_data[rand_speech_pick]
+            data_len = len(data)
+            
+            # for 10 sec chunk
+            if data_len > speech_samples_length:
+                rand_possition_pick = randint(0, data_len-speech_samples_length-1)
+                possiton_end = speech_samples_length
+            
+            # for 1 sec chunk
+            else:
+                rand_possition_pick = 0
+                possiton_end = data_len
+                speech_file = speech_file[rand_possition_pick:possiton_end]
+            
             if np.ndim(speech_file) != np.ndim(data):
                 speech_file = np.ravel(speech_file)
-            data[rand_possition_pick:rand_possition_pick+speech_samples_length] = np.add(
-                    data[rand_possition_pick:rand_possition_pick+speech_samples_length], 
+            data[rand_possition_pick:rand_possition_pick+possiton_end] = np.add(
+                    data[rand_possition_pick:rand_possition_pick+possiton_end], 
                     speech_file)
         return data
 
@@ -769,6 +784,7 @@ def script_invocation():
     parser.add_argument("-to", "--test_only", help="Create test data only", action="store_true")
     parser.add_argument("-aw", "--add_wind", help="Add wind noise to the test data", action="store_true")
     parser.add_argument("-tf", "--test_folder", help="Name of folder containing test data", type=str, default=None)
+    
     args = parser.parse_args()
 
     dirname = os.path.dirname(__file__)
