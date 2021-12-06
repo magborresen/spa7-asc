@@ -110,6 +110,29 @@ class CNN:
         plt.ylabel("True Label")
         plt.savefig(disp_dist)
 
+    def plot_filters(self, model_path):
+        model = load_model(model_path)
+        # retrieve weights from the second hidden layer
+        filters, biases = model.layers[0].get_weights()
+        # normalize filter values to 0-1 so we can visualize them
+        f_min, f_max = filters.min(), filters.max()
+        filters = (filters - f_min) / (f_max - f_min)
+        # plot first few filters
+        n_filters, ix = 16, 1
+        for i in range(n_filters):
+            # get the filter
+            f = filters[:, :, :, i]
+            # plot each channel separately
+            # specify subplot and turn of axis
+            ax = plt.subplot(n_filters, 4, ix)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            # plot filter channel in grayscale
+            plt.imshow(f)
+            ix += 1
+        # show the figure
+        plt.show()
+
 
 
 def script_invocation():
@@ -133,6 +156,7 @@ def script_invocation():
                         action="store_true")
     parser.add_argument("-e", "--epochs", help="Number of epochs to train", type=int, default=2)
     parser.add_argument("-cs", "--chunk_size", help="Chunk size defining input shape", type=int, default=10)
+    parser.add_argument("-pf", "--plot_filters", help="Plot the filters from the given model", type=str, default=None)
     args = parser.parse_args()
 
 
@@ -151,6 +175,10 @@ def script_invocation():
         else:
             model = CNN()
         model.test_CNN(args.model_name)
+
+    if args.plot_filters is not None:
+        model = CNN()
+        model.plot_filters(args.plot_filters)
 
 if __name__ == "__main__":
     script_invocation()
