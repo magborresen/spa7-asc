@@ -98,7 +98,7 @@ class CNN:
         model = load_model(model_path)
         predictions = model.predict(x=self._test_batches, verbose=0)
         np.round(predictions)
-        cm = confusion_matrix(y_true=self._test_batches.classes, y_pred=np.argmax(predictions, axis=-1), normalize='true', labels=["inside", "inside_vehicle", "office", "outside", "semi_outside"])
+        cm = confusion_matrix(y_true=self._test_batches.classes, y_pred=np.argmax(predictions, axis=-1), normalize='true', labels=[0, 1, 2, 3, 4])
         accu = accuracy_score(self._test_batches.classes, np.argmax(predictions, axis=-1))
         print(cm)
         _LOG.info(f"Model accuracy on test data {accu}")
