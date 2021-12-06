@@ -6,7 +6,6 @@ import os
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-plt.rcParams.update({'font.size': 16})
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Activation, Dense, Flatten, BatchNormalization, Conv2D, MaxPool2D
 from tensorflow.keras.optimizers import Adam
@@ -105,7 +104,8 @@ class CNN:
         _LOG.info(f"Model accuracy on test data {accu}")
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=self._class_names)
         disp.plot(cmap=plt.cm.Blues)
-        disp_dist = os.path.join(self._dirname, "confusion_output", model_name)
+        disp_dist = os.path.join(self._dirname, model_name)
+        plt.tight_layout()
         plt.xlabel("Predicted Label")
         plt.ylabel("True Label")
         plt.savefig(disp_dist)

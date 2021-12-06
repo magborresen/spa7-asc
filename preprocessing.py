@@ -19,11 +19,7 @@ from scipy.io import wavfile
 from scipy import signal
 from scipy.spatial.distance import pdist, squareform
 from sklearn.model_selection import train_test_split
-<<<<<<< Updated upstream
 import matplotlib.pyplot as plt
-=======
-import matplotlib as plt
->>>>>>> Stashed changes
 
 warnings.filterwarnings("ignore", '.*Chunk*.')
 warnings.filterwarnings("error")
@@ -90,12 +86,11 @@ class preprocess():
         pbar = tqdm(self._audio_files)
         for af in pbar:
             # Progress bar, just for show
-            if os.name == 'posix':
+            if os.name == "posix":
                 processing_name = af.split("/")
-                pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
             else:
                 processing_name = af.split("\\")
-                pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
+            pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
 
             # Find associated label files
             dirname = os.path.dirname(os.path.abspath(af))
@@ -129,6 +124,8 @@ class preprocess():
                                                                             self.train_labels,
                                                                             test_size=test_size,
                                                                             random_state=42)
+        del collected_data
+        del class_labels
 
         # Convert test data using selected noise and image model
         if add_awgn:
@@ -142,37 +139,144 @@ class preprocess():
             _LOG.info("Adding wind noise to data")
             self.prepare_wind_data()
 
+        pbar = tqdm(zip(self.test_data, self.test_labels), total=len(self.test_data))
+        
         for d, l in zip(self.test_data, self.test_labels):
+            pbar.set_description("Converting test data to Spectrograms")
             y = d
             if add_awgn:
                 y = self.awgn(y)
             if add_wind:
                 y = self.add_wind_noise(y, l)
+
             if add_speech:
                 y = self.add_speech_noise(y)
             if packet_loss != None:
                 y = self.packet_loss_sim(y, loss_type=packet_loss)
             if method.lower() == "spectrogram":
                 self.test_img.append(self.spectrogram(y))
-        if test_only and save_img:
+        if save_img:
             self.save_as_img(data_type="test")
+
+        del self.test_data
+        del self.test_img
+
+        if test_only:
             return True
+
         # Convert training data using the selected method
-        for d in self.train_data:
+        pbar = tqdm(self.train_data)
+        for d in pbar:
+            pbar.set_description("Converting training data to Spectrograms")
             if method.lower() == "spectrogram":
                 self.train_img.append(self.spectrogram(d))
-
-        # Convert validation data using the selected method
-        for d in self.vali_data:
-            if method.lower() == "spectrogram":
-                self.vali_img.append(self.spectrogram(d))
-
-        # Save as images of selected
+        
         if save_img:
             self.save_as_img(data_type="training")
-            self.save_as_img(data_type="validation")
-            self.save_as_img(data_type="test")
 
+        del self.train_img
+        del self.train_data
+
+        # Convert validation data using the selected method
+        pbar = tqdm(self.vali_data)
+        for d in pbar:
+            pbar.set_description("Converting validation data into Spectrograms")
+            if method.lower() == "spectrogram":
+                self.vali_img.append(self.spectrogram(d))
+        if save_img:
+            self.save_as_img(data_type="validation")
+
+        del self.vali_data
+        del self.vali_img
+
+        return True
+
+    def make_test_data(self, method="spectrogram", add_awgn=None, 
+                       packet_loss=None, add_speech=None, add_wind=None, folder_name=None):
+        """ Finds all training data and labels classes
+
+        The function finds all training data and labels the classes.
+        It will also preprocess the data into the given transform.
+        The function will return arrays if save_img is False.
+        Otherwise it will save the data as images
+
+        Args:
+            method (String): Preprocessing technique to use
+            chunk_size (int): Chunk size to split each file into
+            test_size (float): Size of test data given in percentage between 0 and 1
+            vali_size (float): Size of validation data given in percentage between 0 and 1
+
+        Returns:
+            collected_data (list): List of preprocessed collected data
+            class_labels (list): List of class labels
+        """
+        if not folder_name:
+            _LOG.error("No folder was given, exiting...")
+            return
+        else:
+            _LOG.info(f"Loading test data from {folder_name}")
+        
+        class_labels = []
+        collected_data = []
+        _LOG.info(f"Preprocessing data into {method} data")
+        data_folder = os.path.join(self._dirname, folder_name)
+        test_files = glob.glob(os.path.join(data_folder, '**/*.wav'), recursive=True)
+        pbar = tqdm(test_files)
+        for af in pbar:
+            # Progress bar, just for show
+            if os.name == "posix":
+                processing_name = af.split("/")
+            else:
+                processing_name = af.split("\\")
+            pbar.set_description("Processing %s" % processing_name[-1] + " in " + processing_name[-2])
+
+            # Find associated label files
+            dirname = os.path.dirname(os.path.abspath(af))
+            label_file = glob.glob(dirname + "/*.txt")
+            
+            # Get the class
+            sample_class = [c for c in self._classes if re.search(r'\b' + c + r'\b', af)]
+
+            data, self._sample_rate = sf.read(af)
+                
+            # Create Chunks
+            data_chunks = self.chunk_file(data)
+
+            # Create matching labels for the chunks and sort out empty chunks
+            for i in range(len(data_chunks)):
+                if len(data_chunks[i]) != 0:
+                    class_labels.append(sample_class[0])
+                    collected_data.append(data_chunks[i])
+
+            self.test_labels = class_labels
+
+        # Convert test data using selected noise and image model
+        if add_awgn:
+            _LOG.info("Adding AWGN to data")
+        if packet_loss != None:
+            _LOG.info("Adding packet loss to data")
+        if add_speech:
+            _LOG.info("Adding speech noise to data")
+            self.prepare_speech_data()
+        if add_wind:
+            _LOG.info("Adding wind noise to data")
+
+        pbar = tqdm(collected_data)
+        for d in pbar:
+            pbar.set_description("Converting into Spectrograms")
+            y = d
+            if add_awgn:
+                y = self.awgn(y)
+            if add_wind:
+                y = self.add_wind_noise(y)
+            if add_speech:
+                y = self.add_speech_noise(y)
+            if packet_loss != None:
+                y = self.packet_loss_sim(y, loss_type=packet_loss)
+            if method.lower() == "spectrogram":
+                self.test_img.append(self.spectrogram(y))
+
+        self.save_as_img(data_type="test")
         return True
 
     def make_env_noise(self, method="spectrogram", save_img=False):
@@ -355,7 +459,9 @@ class preprocess():
         # uncomment to plot spectogram
         #if True:
         #    fig, ax = plt.subplots() 
+
         #    c = ax.pcolormesh(t, f, 10*np.log10(Sxx), shading='gouraud', cmap='viridis') #shading='auto', cmap='viridis'
+
         #    fig.gca().invert_yaxis()
         #    ax.set_xlabel("Time [s]")
         #    ax.set_ylabel("Frequency [Hz]")
@@ -507,12 +613,24 @@ class preprocess():
         for i in range(num_of_speech_files):
             rand_speech_pick = randint(0, len(self.speech_data)-1)
             speech_samples_length = len(self.speech_data[rand_speech_pick])
-            rand_possition_pick = randint(0, len(data)-speech_samples_length-1)
             speech_file = self.speech_data[rand_speech_pick]
+            data_len = len(data)
+            
+            # for 10 sec chunk
+            if data_len > speech_samples_length:
+                rand_possition_pick = randint(0, data_len-speech_samples_length-1)
+                possiton_end = speech_samples_length
+            
+            # for 1 sec chunk
+            else:
+                rand_possition_pick = 0
+                possiton_end = data_len
+                speech_file = speech_file[rand_possition_pick:possiton_end]
+            
             if np.ndim(speech_file) != np.ndim(data):
                 speech_file = np.ravel(speech_file)
-            data[rand_possition_pick:rand_possition_pick+speech_samples_length] = np.add(
-                    data[rand_possition_pick:rand_possition_pick+speech_samples_length], 
+            data[rand_possition_pick:rand_possition_pick+possiton_end] = np.add(
+                    data[rand_possition_pick:rand_possition_pick+possiton_end], 
                     speech_file)
         return data
 
@@ -639,15 +757,8 @@ class preprocess():
             start_sample = stop_sample
                 
         
-<<<<<<< Updated upstream
         np_data = np.concatenate(packet_data)
-            
-=======
-        return np.concatenate(packet_data, axis=None)
-    try:
-        return np.concatenate(packet_data, axis=None)
-    except RuntimeWarning:
->>>>>>> Stashed changes
+
         return np_data
 
 def script_invocation():
@@ -672,6 +783,8 @@ def script_invocation():
     parser.add_argument("-as", "--add_speech", help="Create enviromental noise test data", action="store_true")
     parser.add_argument("-to", "--test_only", help="Create test data only", action="store_true")
     parser.add_argument("-aw", "--add_wind", help="Add wind noise to the test data", action="store_true")
+    parser.add_argument("-tf", "--test_folder", help="Name of folder containing test data", type=str, default=None)
+    
     args = parser.parse_args()
 
     dirname = os.path.dirname(__file__)
@@ -692,6 +805,14 @@ def script_invocation():
 
     if args.env_noise:
         prep.make_env_noise(method=args.method, save_img=args.save_img)
+
+    if args.test_only and args.test_folder:
+        prep.make_test_data(method=args.method, 
+                            add_awgn=args.add_awgn,
+                            packet_loss=args.packet_loss,
+                            add_speech=args.add_speech,
+                            add_wind=args.add_wind,
+                            folder_name=args.test_folder)
 
 
 if __name__ == "__main__":
