@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Activation, Dense, Flatten, BatchNormalization, Conv2D, MaxPool2D
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import CSVLogger
 from tensorflow.keras.metrics import categorical_crossentropy
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score
@@ -78,6 +79,8 @@ class CNN:
 
         :return:
         """
+        filename = f"{model_name}_{epochs}_epochs" + "_log" + ".csv"
+        history_logger = CSVLogger(filename, seperator=",", append=True)
         model = Sequential([
             Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding='same', input_shape=(*self._input_shape, 3)),
             MaxPool2D(pool_size=(2, 2), strides=2),
@@ -88,11 +91,9 @@ class CNN:
         ])
         model.summary()
         model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
-        model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=epochs, verbose=1)
+        model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=epochs, callbacks=[history_logger] verbose=1)
         model_path = os.path.join(self._dirname, "models", f"{model_name}_{epochs}_epochs")
         model.save(model_path)
-        filename = f"{model_name}_{epochs}_epochs" + ".npy"
-        np.save(os.path.join(self._dirname, "model_history", filename), model.history)
         return model
 
     def test_CNN(self, model_name):
