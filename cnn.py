@@ -109,6 +109,8 @@ class CNN:
         plt.xlabel("Predicted Label")
         plt.ylabel("True Label")
         plt.savefig(disp_dist)
+        filename = model_name + ".npy"
+        np.save(os.path.join(self._dirname, "model_history", filename), model.history)
 
     def plot_filters(self, model_path):
         model = load_model(model_path)
