@@ -91,7 +91,7 @@ class CNN:
         ])
         model.summary()
         model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
-        model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=epochs, callbacks=[history_logger] verbose=1)
+        model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=epochs, callbacks=[history_logger], verbose=1)
         model_path = os.path.join(self._dirname, "models", f"{model_name}_{epochs}_epochs")
         model.save(model_path)
         return model
