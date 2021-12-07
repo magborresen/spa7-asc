@@ -91,6 +91,8 @@ class CNN:
         model.fit(x=self._train_batches, validation_data=self._valid_batches, epochs=epochs, verbose=1)
         model_path = os.path.join(self._dirname, "models", f"{model_name}_{epochs}_epochs")
         model.save(model_path)
+        filename = f"{model_name}_{epochs}_epochs" + ".npy"
+        np.save(os.path.join(self._dirname, "model_history", filename), model.history)
         return model
 
     def test_CNN(self, model_name):
@@ -109,8 +111,6 @@ class CNN:
         plt.xlabel("Predicted Label")
         plt.ylabel("True Label")
         plt.savefig(disp_dist)
-        filename = model_name + ".npy"
-        np.save(os.path.join(self._dirname, "model_history", filename), model.history)
 
     def plot_filters(self, model_path):
         model = load_model(model_path)
