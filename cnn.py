@@ -7,11 +7,12 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import Sequential, load_model
+from keras.models import Model
 from tensorflow.keras.layers import Activation, Dense, Flatten, BatchNormalization, Conv2D, MaxPool2D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import CSVLogger
 from tensorflow.keras.metrics import categorical_crossentropy
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score
 
 _LOG = logging.getLogger(__name__)
@@ -136,6 +137,28 @@ class CNN:
         # show the figure
         plt.show()
 
+    def plot_feature_maps(self, model_path):
+        model = load_model(model_path)
+        model = Model(inputs=model.inputs, outputs=model.layers[0].output)
+        model.summary()
+        img = load_img("inside10000.png")
+        img = img_to_array(img)
+        img = np.expand_dims(img, axis=0)
+        feature_maps = model.predict(img)
+        square = 8
+        square2 = 4
+        ix = 1
+        plt.figure(figsize=(8, 20))
+        for _ in range(square):
+            for _ in range(square2):
+                ax = plt.subplot(square, square, ix)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                plt.imshow(feature_maps[0, :, :, ix-1])
+                ix += 1
+
+        plt.tight_layout()
+        plt.savefig("output.png")
 
 
 def script_invocation():
@@ -160,6 +183,7 @@ def script_invocation():
     parser.add_argument("-e", "--epochs", help="Number of epochs to train", type=int, default=2)
     parser.add_argument("-cs", "--chunk_size", help="Chunk size defining input shape", type=int, default=10)
     parser.add_argument("-pf", "--plot_filters", help="Plot the filters from the given model", type=str, default=None)
+    parser.add_argument("-po", "--plot_output", help="Plot the feature map of the first layer", type=str, default=None)
     args = parser.parse_args()
 
 
@@ -182,6 +206,10 @@ def script_invocation():
     if args.plot_filters is not None:
         model = CNN()
         model.plot_filters(args.plot_filters)
+
+    if args.plot_output is not None:
+        model = CNN()
+        model.plot_feature_maps(args.plot_output)
 
 if __name__ == "__main__":
     script_invocation()
