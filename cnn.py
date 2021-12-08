@@ -112,7 +112,7 @@ class CNN:
         plt.tight_layout()
         plt.xlabel("Predicted Label")
         plt.ylabel("True Label")
-        plt.savefig(disp_dist)
+        plt.savefig(disp_dist, format="pdf")
 
     def plot_filters(self, model_path):
         model = load_model(model_path)
