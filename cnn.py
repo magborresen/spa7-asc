@@ -79,8 +79,8 @@ class CNN:
 
         :return:
         """
-        filename = f"{model_name}_{epochs}_epochs" + "_log" + ".csv"
-        history_logger = CSVLogger(filename, seperator=",", append=True)
+        filename = f"{model_name}_{epochs}_epochs" + f"_log" + f".csv"
+        history_logger = CSVLogger(os.path.join(self._dirname, "model_history", filename), separator=",", append=True)
         model = Sequential([
             Conv2D(filters=32, kernel_size=(3, 3), activation='relu', padding='same', input_shape=(*self._input_shape, 3)),
             MaxPool2D(pool_size=(2, 2), strides=2),
