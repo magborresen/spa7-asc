@@ -109,9 +109,9 @@ class CNN:
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=self._class_names)
         disp.plot(cmap=plt.cm.Blues)
         disp_dist = os.path.join(self._dirname, model_name)
-        plt.tight_layout()
         plt.xlabel("Predicted Label")
         plt.ylabel("True Label")
+        plt.tight_layout()
         plt.savefig(disp_dist, format="pdf")
 
     def plot_filters(self, model_path):
