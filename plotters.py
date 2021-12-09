@@ -43,6 +43,7 @@ def script_invocation():
         return
 
     hist = pd.read_csv(args.model_path, delimiter=",")
+    print(hist)
 
     if args.plot_acc:
         plot_acc_metric(hist)
