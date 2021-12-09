@@ -106,9 +106,10 @@ class CNN:
         accu = accuracy_score(self._test_batches.classes, np.argmax(predictions, axis=-1))
         print(cm)
         _LOG.info(f"Model accuracy on test data {accu}")
-        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=self._class_names)
         cfont = {'fontname': 'Calibri'}
-        disp.plot(cmap=plt.cm.Blues, **cfont)
+        plt.rc('font', **cfont)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=self._class_names)
+        disp.plot(cmap=plt.cm.Blues)
         disp_dist = os.path.join(self._dirname, model_name)
         plt.xlabel("Predicted Label")
         plt.ylabel("True Label")
