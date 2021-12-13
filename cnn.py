@@ -14,6 +14,9 @@ from tensorflow.keras.callbacks import CSVLogger
 from tensorflow.keras.metrics import categorical_crossentropy
 from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score
+import matplotlib.font_manager as font_manager
+
+font_manager.findSystemFonts(fontpaths=None, fontext="ttf")
 
 _LOG = logging.getLogger(__name__)
 
@@ -106,8 +109,18 @@ class CNN:
         accu = accuracy_score(self._test_batches.classes, np.argmax(predictions, axis=-1))
         print(cm)
         _LOG.info(f"Model accuracy on test data {accu}")
-        cfont = {'fontname': 'Calibri'}
+        cfont = {'family': 'Calibri'}
+        SMALL_SIZE = 12
+        MEDIUM_SIZE = 14
+        BIGGER_SIZE = 16
         plt.rc('font', **cfont)
+        plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
+        plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+        plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+        plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+        plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=self._class_names)
         disp.plot(cmap=plt.cm.Blues)
         disp_dist = os.path.join(self._dirname, model_name)

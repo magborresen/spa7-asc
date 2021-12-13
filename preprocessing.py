@@ -664,7 +664,7 @@ class preprocess():
         Returns:
             Input signal merged with wind noise
         """
-        if label == 'inside' or 'office':
+        if label in ['inside', 'office']:
             return data
         # Select a random starting sample in the wind
         start = randint(1, len(self.wind_data)-1)
