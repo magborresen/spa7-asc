@@ -456,17 +456,18 @@ class preprocess():
             zeros_possition  = np.where(vertical_line == 0.0)
             Sxx[i][zeros_possition] = minval
         
-        # uncomment to plot spectogram
-        #if True:
-        #    fig, ax = plt.subplots() 
-
-        #    c = ax.pcolormesh(t, f, 10*np.log10(Sxx), shading='gouraud', cmap='viridis') #shading='auto', cmap='viridis'
-
-        #    fig.gca().invert_yaxis()
-        #    ax.set_xlabel("Time [s]")
-        #    ax.set_ylabel("Frequency [Hz]")
-        #    plt.colorbar(c, format="%+2.f dB") # plt.colorbar(c)
-        #    plt.show()
+        if True:
+            fig, ax = plt.subplots() 
+        
+            c = ax.pcolormesh(t, f, 10*np.log10(Sxx), shading='gouraud', cmap='viridis') #shading='auto', cmap='viridis'
+        
+            ieee_font = {'fontname':'Times New Roman'}
+        
+            fig.gca().invert_yaxis()
+            ax.set_xlabel("Time [s]",**ieee_font)
+            ax.set_ylabel("Frequency [Hz]",**ieee_font)
+            plt.colorbar(c, format="%+2.f dB") # plt.colorbar(c)
+            plt.show()
         
         return 10*np.log10(Sxx)
     
